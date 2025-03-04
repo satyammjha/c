@@ -4,6 +4,7 @@ import { useJobData } from "../Context/jobDataProvider";
 
 export default function InfiniteMovingCardsDemo() {
   const { jobs, error, isLoading } = useJobData();
+  console.log("jobs", jobs);
 
   return (
     <div className="w-screen overflow-hidden flex items-center justify-center">

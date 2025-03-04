@@ -75,7 +75,7 @@ const ReferralButton = () => {
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button className="flex items-center gap-2" disabled={isLoading}>
+                <Button className="flex items-center gap-2" disabled={isLoading} variant="outline">
                     {isLoading ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (

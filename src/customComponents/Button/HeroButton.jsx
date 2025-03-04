@@ -8,9 +8,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "../../components/ui/dialog";
-import { MoveUpRight } from 'lucide-react';
+import { MoveUpRight, MoveUpRightIcon } from 'lucide-react';
 import { SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
-import { IconArrowWaveRightUp } from '@tabler/icons-react';
 
 const HeroUploadBtn = () => {
     const navigate = useNavigate();
@@ -31,7 +30,7 @@ const HeroUploadBtn = () => {
                     aria-label="Upload and analyze your resume"
                 >
                     <span itemProp="name">Analyze My Resume</span>
-                    <IconArrowWaveRightUp aria-hidden="true" className="h-5 w-5" />
+                    <MoveUpRightIcon aria-hidden="true" className="h-5 w-5" />
                 </Button>
             </SignedIn>
 

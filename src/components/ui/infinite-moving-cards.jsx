@@ -6,12 +6,37 @@ import glassdoor from "../../assets/glassdoor.jpg";
 import naukriLogo from "../../assets/naukri.png";
 import { Toaster } from "./sonner";
 import { toast } from "sonner";
-import { Badge } from "./badge";
+import { useSavedJobs } from "../../Context/SavedJobContext";
 
 export const InfiniteMovingCards = ({ jobs, direction, speed, pauseOnHover, className }) => {
   const containerRef = useRef(null);
   const scrollerRef = useRef(null);
   const [start, setStart] = useState(false);
+  const { savedJobs, saveJob } = useSavedJobs();
+
+
+  const handleSaveJob = (job) => {
+    const jobToSave = {
+      jobId: job.jobId || job._id, // Ensure a unique ID is stored
+      title: job.title,
+      company: job.company,
+      location: job.location || "Not Specified",
+      salary: job.salary || "Not Disclosed",
+      experience: job.experience || "Not Mentioned",
+      posted: job.posted || "Unknown",
+      link: job.link,
+      source: job.link.includes("naukri") ? "Naukri" : "Glassdoor", // Detect the job source
+      tags: job.tags || [],
+      savedDate: new Date().toISOString(), // Store the date & time when job is saved
+      description: job.description || "No description available",
+      logo: job.logo || "",
+    };
+  
+    saveJob(jobToSave);
+    toast.success(`Saved ${job.title} to bookmarks`);
+  };
+  
+
 
   useEffect(() => {
     if (containerRef.current && scrollerRef.current) {
@@ -35,7 +60,9 @@ export const InfiniteMovingCards = ({ jobs, direction, speed, pauseOnHover, clas
         className
       )}
     >
-      <Toaster position="bottom-center" />
+      <div className="z-50">
+        <Toaster position="top-center" />
+      </div>
       <style>{`
         @keyframes scroll { to { transform: translate(calc(-50% - 0.5rem)); } }
         .animate-scroll { animation: scroll var(--animation-duration, 40s) linear infinite; animation-direction: var(--animation-direction, forwards); }
@@ -68,9 +95,14 @@ export const InfiniteMovingCards = ({ jobs, direction, speed, pauseOnHover, clas
                 <button
                   className="p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
                   aria-label="Save job"
-                  onClick={() => toast(`Saved ${job.title} to bookmarks`, "success")}
+                  onClick={() => handleSaveJob(job)}
                 >
-                  <Bookmark className="w-5 h-5 text-gray-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400" />
+                  <Bookmark
+                    className={`w-5 h-5 ${savedJobs.some((saved) => saved._id === job._id)
+                      ? "text-blue-500 dark:text-blue-400"
+                      : "text-gray-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+                      }`}
+                  />
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">

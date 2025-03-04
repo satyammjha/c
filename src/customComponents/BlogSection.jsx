@@ -2,13 +2,6 @@
 import { cn } from "@/lib/utils";
 import React from "react";
 import { BentoGrid, BentoGridItem } from "../components/ui/bento-grid";
-import {
-  IconBoxAlignRightFilled,
-  IconClipboardCopy,
-  IconFileBroken,
-  IconSignature,
-  IconTableColumn,
-} from "@tabler/icons-react";
 import { motion } from "framer-motion";
 
 export default function BlogsShowcase() {
@@ -20,8 +13,7 @@ export default function BlogsShowcase() {
           title={item.title}
           description={item.description}
           header={item.header}
-          className={cn("[&>p:text-lg]", item.className)}
-          icon={item.icon} />
+          className={cn("[&>p:text-lg]", item.className)}/>
       ))}
     </BentoGrid>)
   );
@@ -295,8 +287,7 @@ const items = [
       </span>
     ),
     header: <SkeletonOne />,
-    className: "md:col-span-1",
-    icon: <IconClipboardCopy className="h-4 w-4 text-neutral-500" />,
+    className: "md:col-span-1"
   },
   {
     title: "Automated Proofreading",
@@ -307,7 +298,6 @@ const items = [
     ),
     header: <SkeletonTwo />,
     className: "md:col-span-1",
-    icon: <IconFileBroken className="h-4 w-4 text-neutral-500" />,
   },
   {
     title: "Contextual Suggestions",
@@ -318,7 +308,6 @@ const items = [
     ),
     header: <SkeletonThree />,
     className: "md:col-span-1",
-    icon: <IconSignature className="h-4 w-4 text-neutral-500" />,
   },
   {
     title: "Sentiment Analysis",
@@ -328,8 +317,7 @@ const items = [
       </span>
     ),
     header: <SkeletonFour />,
-    className: "md:col-span-2",
-    icon: <IconTableColumn className="h-4 w-4 text-neutral-500" />,
+    className: "md:col-span-2"
   },
 
   {
@@ -340,7 +328,6 @@ const items = [
       </span>
     ),
     header: <SkeletonFive />,
-    className: "md:col-span-1",
-    icon: <IconBoxAlignRightFilled className="h-4 w-4 text-neutral-500" />,
+    className: "md:col-span-1"
   },
 ];

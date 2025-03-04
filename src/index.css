@@ -149,3 +149,16 @@ body {
 .badge:hover {
   transform: translateY(-1px);
 }
+.scroll-container {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.scroll-container::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}

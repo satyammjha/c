@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import HeroUploadBtn from "../customComponents/Button/HeroButton";
 import { JobsGridDemo } from "../customComponents/JobsGrid";
+import FileUpload from "../customComponents/FileUpload";
 
 const InfiniteMovingCardsDemo = lazy(() => import("../customComponents/HeroJob"));
 const WorkflowTimeline = lazy(() => import("../customComponents/TimelineDemo"));
@@ -62,7 +63,6 @@ const Home = () => {
                         </Button>
                     </div>
                 </div>
-
                 <Suspense fallback={<SkeletonLoader />}>
                     <InfiniteMovingCardsDemo />
                 </Suspense>
@@ -85,7 +85,7 @@ const Home = () => {
                     <WorkflowTimeline />
                 </Suspense>
             </div>
-
+            <FileUpload />
             <div className="relative z-10 mt-20 py-20">
                 <motion.h2 {...headingAnimation} className="text-4xl lg:text-5xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500 mb-8">
                     Latest Insights

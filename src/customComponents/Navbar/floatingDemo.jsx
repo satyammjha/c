@@ -1,5 +1,5 @@
-
-import { FloatingDock } from "../aceComponents/floating-dock";
+import React from "react";
+import { FloatingDock } from "../../components/ui/floating-dock";
 import {
     IconBrandGithub,
     IconBrandX,
@@ -8,8 +8,6 @@ import {
     IconNewSection,
     IconTerminal2,
 } from "@tabler/icons-react";
-import Image from "next/image";
-import React = require("react");
 
 export function FloatingDockDemo() {
     const links = [
@@ -18,15 +16,15 @@ export function FloatingDockDemo() {
             icon: (
                 <IconHome className="h-full w-full text-neutral-500 dark:text-neutral-300" />
             ),
-            href: "#",
+            href: "/",
         },
 
         {
-            title: "Products",
+            title: "Dashboard",
             icon: (
                 <IconTerminal2 className="h-full w-full text-neutral-500 dark:text-neutral-300" />
             ),
-            href: "#",
+            href: "",
         },
         {
             title: "Components",
@@ -38,12 +36,11 @@ export function FloatingDockDemo() {
         {
             title: "Aceternity UI",
             icon: (
-                <Image
+                <img
                     src="https://assets.aceternity.com/logo-dark.png"
                     width={20}
                     height={20}
-                    alt="Aceternity Logo"
-                />
+                    alt="Aceternity Logo" />
             ),
             href: "#",
         },
@@ -63,18 +60,18 @@ export function FloatingDockDemo() {
             href: "#",
         },
         {
-            title: "GitHub",
+            title: "Dashboard",
             icon: (
                 <IconBrandGithub className="h-full w-full text-neutral-500 dark:text-neutral-300" />
             ),
-            href: "#",
+            href: "/dashboard",
         },
     ];
     return (
-        <div className="flex items-center justify-center h-[35rem] w-full">
+        (<div className="flex -bottom-8 h-[14rem] left-[84%] w-full fixed">
             <FloatingDock
-                items={links}
-            />
-        </div>
+                mobileClassName="translate-y-20"
+                items={links} />
+        </div>)
     );
 }
