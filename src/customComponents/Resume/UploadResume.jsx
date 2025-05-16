@@ -11,13 +11,18 @@ import { Badge } from "../../components/ui/badge";
 import { SkillsContext } from "../../Context/SkillsContext";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "../../components/ui/accordion";
 import { Loader2, UploadCloudIcon } from "lucide-react";
+import useUserData from "../../Context/UserContext";
+import consumeCredit from "../../services/consumeCredit";
+import { Toaster, toast } from "sonner";
 
 function UploadResume() {
+    const { userData } = useUserData();
+    const currentUser = userData?.email;
+    console.log("currentUser", currentUser);
     const [currentPdf, setCurrentPdf] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [processingSkills, setProcessingSkills] = useState(false);
-    const [AIReview, setAIReview] = useState('');
-    const [extractedText, setExtractedText] = useState('');
+    const [AIReview, setAIReview] = useState(null);
     const [compatibilityScore, setCompatibilityScore] = useState(null);
     const [suggestions, setSuggestions] = useState({
         strengths: [],
@@ -29,213 +34,213 @@ function UploadResume() {
 
     const genAI = new GoogleGenerativeAI("AIzaSyAx4bapGjEdXuwlAgRwpK2jda5Cmklf5rw");
 
-    useEffect(() => {
-        const savedPdf = localStorage.getItem("currentPdf");
-        const savedSkills = localStorage.getItem("globalSkills");
-        const savedAIReview = localStorage.getItem("AIReview");
-        const savedCompatibilityScore = localStorage.getItem("compatibilityScore");
-        const savedSuggestions = localStorage.getItem("suggestions");
-
-        if (savedPdf) setCurrentPdf(JSON.parse(savedPdf));
-        if (savedSkills) setGlobalSkills(JSON.parse(savedSkills));
-        if (savedAIReview) setAIReview(savedAIReview);
-        if (savedCompatibilityScore) setCompatibilityScore(JSON.parse(savedCompatibilityScore));
-        if (savedSuggestions) setSuggestions(JSON.parse(savedSuggestions));
-    }, []);
-
-    useEffect(() => {
-        if (currentPdf) localStorage.setItem("currentPdf", JSON.stringify(currentPdf));
-    }, [currentPdf]);
-
-    useEffect(() => {
-        localStorage.setItem("globalSkills", JSON.stringify(globalSkills));
-    }, [globalSkills]);
-
-    useEffect(() => {
-        localStorage.setItem("AIReview", AIReview);
-        console.log("AI review:", AIReview);
-    }, [AIReview]);
-
-    useEffect(() => {
-        localStorage.setItem("compatibilityScore", JSON.stringify(compatibilityScore));
-    }, [compatibilityScore]);
-
-    useEffect(() => {
-        localStorage.setItem("suggestions", JSON.stringify(suggestions));
-    }, [suggestions]);
-
-    useEffect(() => {
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-            }
-        };
-    }, []);
-
-    const extractText = async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        setIsLoading(true);
-        setProcessingSkills(true);
-        setExtractedText('');
-        setAIReview('');
-        setGlobalSkills([]);
-        setCompatibilityScore(null);
-        setSuggestions([]);
-
-        const reader = new FileReader();
-        reader.onload = async function () {
-            try {
-                const typedArray = new Uint8Array(reader.result);
-                pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
-                const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-
-                let fullText = "";
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    fullText += textContent.items.map((item) => item.str).join(" ") + "\n";
-                }
-                setExtractedText(fullText);
-
-                const newPdf = {
-                    id: Date.now(),
-                    name: file.name,
-                    text: fullText || "No text found in the PDF",
-                    date: new Date().toLocaleString(),
-                };
-                setCurrentPdf(newPdf);
-                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-                const prompt = `Extract all relevent skills from this resume text as a comma-separated list (max 10 skills): ${fullText}`;
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
-                const skillsList = response.text().split(',').map(skill => skill.trim());
-
-                setGlobalSkills(skillsList);
-                localStorage.setItem("globalSkills", JSON.stringify(skillsList));
-
-                const jdText = localStorage.getItem("jobDescription");
-                if (jdText) {
-                    await compareResumeWithJD(fullText, jdText);
-                } else {
-                    intervalRef.current = setInterval(async () => {
-                        const newJd = localStorage.getItem("jobDescription");
-                        if (newJd) {
-                            clearInterval(intervalRef.current);
-                            await compareResumeWithJD(fullText, newJd);
-                        }
-                    }, 2000);
-                }
-
-                await generateAIReview(fullText);
-            } catch (error) {
-                console.error("Error extracting text:", error);
-                setGlobalSkills([]);
-                setAIReview("Failed to process the PDF.");
-            } finally {
-                setIsLoading(false);
-                setProcessingSkills(false);
-                event.target.value = "";
-            }
-        };
-        reader.readAsArrayBuffer(file);
+    const getStorageKey = (key) => {
+        return currentUser ? `${key}_${currentUser.uid}` : key;
     };
 
-    const compareResumeWithJD = async (resumeText, jdText) => {
-        setIsLoading(true);
+    useEffect(() => {
+        if (!currentUser) return;
 
-        try {
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-            const prompt = `
-            Compare the following resume and job description. Provide:
-            1. Compatibility score out of 100
-            2. Categorized suggestions
-            Resume:
-            ${resumeText}
-    
-            Job Description:
-            ${jdText}
-    
-            Return response in this EXACT JSON format:
-            {
-                "score": 85,
-                "strengths": ["..."],
-                "weaknesses": ["..."],
-                "suggestions": ["..."]
+        const loadPersistedData = () => {
+            try {
+                const savedPdf = localStorage.getItem(getStorageKey("currentPdf"));
+                const savedSkills = localStorage.getItem(getStorageKey("globalSkills"));
+                const savedAIReview = localStorage.getItem(getStorageKey("AIReview"));
+                const savedScore = localStorage.getItem(getStorageKey("compatibilityScore"));
+                const savedSuggestions = localStorage.getItem(getStorageKey("suggestions"));
+
+                if (savedPdf) setCurrentPdf(JSON.parse(savedPdf));
+                if (savedSkills) setGlobalSkills(JSON.parse(savedSkills));
+                if (savedAIReview) setAIReview(JSON.parse(savedAIReview));
+                if (savedScore) setCompatibilityScore(JSON.parse(savedScore));
+                if (savedSuggestions) setSuggestions(JSON.parse(savedSuggestions));
+            } catch (error) {
+                console.error("Error loading persisted data:", error);
+                clearUserData();
             }
-            `;
+        };
 
-            const result = await model.generateContent(prompt);
-            const response = result.response;
-            let textResponse = response.text();
+        loadPersistedData();
+    }, [currentUser]);
 
-            textResponse = textResponse.replace(/```json|```/g, "").trim();
-            textResponse = textResponse.replace(/[\x00-\x1F\x7F]/g, "");
+    useEffect(() => {
+        if (currentUser && currentPdf) {
+            localStorage.setItem(getStorageKey("currentPdf"), JSON.stringify(currentPdf));
+        }
+    }, [currentPdf, currentUser]);
 
-            const parsedData = JSON.parse(textResponse);
-            if (parsedData.score && parsedData.strengths && parsedData.weaknesses && parsedData.suggestions) {
-                setCompatibilityScore(parsedData.score);
-                setSuggestions({
-                    strengths: parsedData.strengths,
-                    weaknesses: parsedData.weaknesses,
-                    suggestions: parsedData.suggestions
-                });
-            } else {
-                console.error("Unexpected response format:", textResponse);
-                alert("Unexpected response format. Please try again.");
-            }
-        } catch (error) {
-            console.error("Error comparing resume with JD:", error);
-            alert("Failed to compare resume with job description.");
-        } finally {
-            setIsLoading(false);
+    useEffect(() => {
+        if (currentUser) {
+            localStorage.setItem(getStorageKey("globalSkills"), JSON.stringify(globalSkills));
+        }
+    }, [globalSkills, currentUser]);
+
+    useEffect(() => {
+        if (currentUser && AIReview) {
+            localStorage.setItem(getStorageKey("AIReview"), JSON.stringify(AIReview));
+        }
+    }, [AIReview, currentUser]);
+
+    useEffect(() => {
+        if (currentUser) {
+            localStorage.setItem(getStorageKey("compatibilityScore"), JSON.stringify(compatibilityScore));
+        }
+    }, [compatibilityScore, currentUser]);
+
+    useEffect(() => {
+        if (currentUser) {
+            localStorage.setItem(getStorageKey("suggestions"), JSON.stringify(suggestions));
+        }
+    }, [suggestions, currentUser]);
+
+    const clearUserData = () => {
+        setCurrentPdf(null);
+        setGlobalSkills([]);
+        setAIReview(null);
+        setCompatibilityScore(null);
+        setSuggestions({
+            strengths: [],
+            weaknesses: [],
+            suggestions: []
+        });
+
+        if (currentUser) {
+            localStorage.removeItem(getStorageKey("currentPdf"));
+            localStorage.removeItem(getStorageKey("globalSkills"));
+            localStorage.removeItem(getStorageKey("AIReview"));
+            localStorage.removeItem(getStorageKey("compatibilityScore"));
+            localStorage.removeItem(getStorageKey("suggestions"));
         }
     };
 
+ const extractText = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Quick credit‑check before anything else
+  if (userData.aiCredits <= 0 || userData.aiCredits < 20) {
+    if (userData.aiCredits <= 0) {
+  toast(
+    "😬 Oops! You’re out of AI credits. No worries—your credits will auto‑refill in an hour. Or earn extra credits instantly by referring a friend! 🚀"
+  );
+} else {
+  toast(
+    "🔔 Heads up! Your AI credits are running low. They’ll auto‑refill in an hour, or you can boost your balance by referring a friend. 👍"
+  );
+}
+    event.target.value = "";
+    return;
+  }
+
+  setIsLoading(true);
+  setProcessingSkills(true);
+  clearUserData();
+
+  const creditResponse = await consumeCredit("resumeAnalysis", currentUser);
+  if (creditResponse?.response?.status === 400) {
+    toast(creditResponse.response.data.message);
+    setIsLoading(false);
+    setProcessingSkills(false);
+    event.target.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async function () {
+    try {
+      const typedArray = new Uint8Array(reader.result);
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+      const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        fullText += textContent.items.map((item) => item.str).join(" ") + "\n";
+      }
+
+      const newPdf = {
+        id: Date.now(),
+        name: file.name,
+        text: fullText || "No text found in the PDF",
+        date: new Date().toLocaleString(),
+      };
+      setCurrentPdf(newPdf);
+
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const prompt = `Extract relevant skills from this resume (max 10): ${fullText} and give response like skill1, skill2, skill3, .... the response should only include skills nothing paragraphs or anything only skills in words !!!most important`;
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const skillsList = response.text().split(',').map(skill => skill.trim());
+
+      setGlobalSkills(skillsList);
+      await generateAIReview(fullText);
+    } catch (error) {
+      console.error("Error processing PDF:", error);
+      clearUserData();
+    } finally {
+      setIsLoading(false);
+      setProcessingSkills(false);
+      event.target.value = "";
+    }
+  };
+
+  reader.readAsArrayBuffer(file);
+};
+
+
     const generateAIReview = async (text) => {
         if (!text) {
-            setAIReview("No text found in the resume.");
+            setAIReview({ error: "No text found in the resume" });
             return;
         }
 
         setIsLoading(true);
-
         try {
-            const review = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-            const prompt = `Analyze this resume text for strengths, weaknesses, and suggestions: ${text}`;
-            const result = await review.generateContent(prompt);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+            const prompt = `Analyze this resume and provide:
+                1. Compatibility score/100
+                2. Strengths
+                3. Weaknesses
+                4. Suggestions
+                Resume: ${text}
+                Respond in this exact JSON format:
+                {
+                    "score": 85,
+                    "strengths": ["..."],
+                    "weaknesses": ["..."],
+                    "suggestions": ["..."]
+                }`;
+
+            const result = await model.generateContent(prompt);
             const response = await result.response;
-            console.log("AI review response:", response.text());
-            setAIReview(response.text());
+            const responseText = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+
+            try {
+                const reviewData = JSON.parse(responseText);
+                setAIReview(reviewData);
+                setCompatibilityScore(reviewData.score);
+                setSuggestions({
+                    strengths: reviewData.strengths,
+                    weaknesses: reviewData.weaknesses,
+                    suggestions: reviewData.suggestions
+                });
+            } catch (parseError) {
+                console.error("Error parsing AI response:", parseError);
+                setAIReview({ error: "Failed to analyze resume" });
+            }
         } catch (error) {
-            console.error("Error generating AI review:", error);
-            setAIReview("Failed to generate AI review.");
+            console.error("Error generating review:", error);
+            setAIReview({ error: "Analysis failed" });
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const deletePdf = () => {
-        setCurrentPdf(null);
-        setGlobalSkills([]);
-        setAIReview('');
-        setCompatibilityScore(null);
-        setSuggestions([]);
-        localStorage.removeItem("currentPdf");
-        localStorage.removeItem("globalSkills");
-        localStorage.removeItem("AIReview");
-        localStorage.removeItem("compatibilityScore");
-        localStorage.removeItem("suggestions");
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
         }
     };
 
     return (
         <div className="p-5 bg-gray-50 dark:bg-gray-900 rounded-lg shadow-lg">
-
-
+            <Toaster richColors position="top-center" />
             {!currentPdf ? (
                 <div className="max-w-2xl mx-auto">
                     <div className="mb-8 text-center">
@@ -243,7 +248,7 @@ function UploadResume() {
                             AI-Powered Resume Analysis
                         </h2>
                         <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 px-4">
-                            Instant ATS feedback • Strengths analysis • Free & secure
+                            Instant ATS feedback • Skill analysis • Persistent storage
                         </p>
 
                         <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 transition-colors hover:border-blue-500 hover:dark:border-blue-600">
@@ -296,84 +301,108 @@ function UploadResume() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <CardTitle>{currentPdf.name}</CardTitle>
-                                <CardDescription>{currentPdf.date}</CardDescription>
+                                <CardDescription>
+                                    Uploaded: {currentPdf.date}
+                                    {currentUser && (
+                                        <span className="block text-xs mt-1 text-green-600">
+                                            Saved to your account
+                                        </span>
+                                    )}
+                                </CardDescription>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={deletePdf} aria-label="Delete PDF">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={clearUserData}
+                                aria-label="Delete PDF"
+                            >
                                 <Trash2 className="h-4 w-4 text-red-600 rounded-sm" />
                             </Button>
                         </div>
                     </CardHeader>
+
                     <CardContent>
                         <h3 className="text-md font-semibold mb-2">Extracted Skills:</h3>
                         <div className="flex flex-wrap gap-2">
                             {processingSkills ? (
-                                <Skeleton className="h-8 w-20 rounded-md" />
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <Skeleton key={i} className="h-8 w-20 rounded-md" />
+                                ))
                             ) : (
                                 globalSkills.map((skill, index) => (
-                                    <Badge key={index} variant="outline" className="bg-blue-100 text-blue-800">
+                                    <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="bg-blue-100 rounded-md text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                    >
                                         {skill}
                                     </Badge>
                                 ))
                             )}
                         </div>
                     </CardContent>
-                    {compatibilityScore !== null && (
-                        <CardContent>
-                            <h3 className="text-md font-semibold mb-2">Compatibility Score:</h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{compatibilityScore}/100</p>
-                        </CardContent>
-                    )}
-                    {suggestions.length > 0 && (
-                        <CardContent>
-                            <h3 className="text-md font-semibold mb-2">Suggestions:</h3>
-                            <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
-                                {suggestions.map((suggestion, index) => (
-                                    <li key={index}>{suggestion}</li>
-                                ))}
-                            </ul>
-                        </CardContent>
-                    )}
+
                     <CardContent>
-                        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">AI Review</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                            AI Analysis Report
+                        </h3>
                         {AIReview ? (
-                            <Accordion type="multiple" className="w-full">
-                                {AIReview.split('**').map((section, index) => {
-                                    const [heading, content] = section.split(':');
-                                    const trimmedHeading = heading.trim();
-                                    const isStrength = trimmedHeading === 'Strengths';
-                                    const isWeakness = trimmedHeading === 'Weaknesses';
-                                    const isSuggestion = trimmedHeading === 'Suggestions';
+                            AIReview.error ? (
+                                <div className="text-red-500 text-sm p-4 bg-red-50 rounded-lg">
+                                    {AIReview.error}
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="mb-8 p-4 bg-blue-50 rounded-lg dark:bg-blue-900/30">
+                                        <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                                            Overall Compatibility Score
+                                        </h3>
+                                        <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                                            {compatibilityScore}/100
+                                        </div>
+                                    </div>
 
-                                    if (!isStrength && !isWeakness && !isSuggestion) return null;
+                                    <Accordion type="multiple" className="w-full space-y-4">
+                                        {['strengths', 'weaknesses', 'suggestions'].map((section) => {
+                                            const title = section.charAt(0).toUpperCase() + section.slice(1);
+                                            const isStrength = section === 'strengths';
+                                            const isWeakness = section === 'weaknesses';
+                                            const content = AIReview[section] || [];
 
-                                    return (
-                                        <AccordionItem key={index} value={trimmedHeading}>
-                                            <AccordionTrigger className="text-left hover:no-underline px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                                <div className="flex items-center gap-3">
-                                                    <span className={`w-2 h-2 rounded-full ${isStrength ? 'bg-green-500' :
-                                                        isWeakness ? 'bg-red-500' :
-                                                            'bg-blue-500'
-                                                        }`}></span>
-                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                                                        {trimmedHeading}
-                                                    </span>
-                                                </div>
-                                            </AccordionTrigger>
-                                            <AccordionContent className="px-4 py-3">
-                                                <ul className="list-disc list-inside pl-4 space-y-2 text-gray-600 dark:text-gray-400">
-                                                    {content.split('*').filter(Boolean).map((item, i) => (
-                                                        <li key={i} className="text-sm leading-relaxed">
-                                                            {item.trim()}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    );
-                                })}
-                            </Accordion>
+                                            return (
+                                                <AccordionItem key={section} value={section} className="border-none">
+                                                    <AccordionTrigger className="hover:no-underline px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                        <div className="flex items-center gap-3 w-full">
+                                                            <span className={`w-3 h-3 rounded-full ${isStrength ? 'bg-green-500' :
+                                                                isWeakness ? 'bg-red-500' :
+                                                                    'bg-blue-500'
+                                                                }`}></span>
+                                                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                                {title} ({content.length})
+                                                            </span>
+                                                        </div>
+                                                    </AccordionTrigger>
+                                                    <AccordionContent className="px-4 py-3">
+                                                        <ul className="list-disc list-inside pl-4 space-y-2 text-gray-600 dark:text-gray-400">
+                                                            {content.map((item, i) => (
+                                                                <li key={i} className="text-sm leading-relaxed">
+                                                                    {item}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            );
+                                        })}
+                                    </Accordion>
+                                </>
+                            )
                         ) : (
-                            <Skeleton className="h-20 w-full" />
+                            <div className="space-y-4">
+                                <Skeleton className="h-12 w-full rounded-lg" />
+                                <Skeleton className="h-12 w-full rounded-lg" />
+                                <Skeleton className="h-12 w-full rounded-lg" />
+                            </div>
                         )}
                     </CardContent>
                 </Card>

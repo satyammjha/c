@@ -1,297 +1,207 @@
-import { useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Input } from "../components/ui/input";
+import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
+import { Toaster } from "../components/ui/sonner";
+import { toast } from "sonner";
+import { useSavedJobs } from "../Context/SavedJobContext";
+import useUserData from "../Context/UserContext";
+import { FilterControls } from "../customComponents/SavedJobs/FilterControls";
+import { StatusCards } from "../customComponents/SavedJobs/StatusCards";
+import { JobTable } from "../customComponents/SavedJobs/JobTable";
+import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Search, NotebookPen, X, TrendingUp, Clock, Star, CalendarDays, Filter } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
-import { Calendar } from "../components/ui/calendar";
-
-const jobs = [
-  {
-    _id: '1',
-    title: 'Senior Frontend Engineer',
-    company: "TechNova",
-    status: "Interviewing",
-    savedDate: "2024-03-15",
-    salary: "$120K",
-    experience: 5,
-    skills: ['React', 'TypeScript', 'Node.js'],
-    responseTime: 3,
-    matchPercentage: 85
-  },
-  {
-    _id: '2',
-    title: 'Product Director',
-    company: "FutureLabs",
-    status: "Offered",
-    savedDate: "2024-03-10",
-    salary: "$150K",
-    experience: 8,
-    skills: ['Product Strategy', 'Team Leadership', 'Roadmapping'],
-    responseTime: 5,
-    matchPercentage: 76
-  },
-];
-
-const statusOptions = [
-  { value: "Saved", label: "Saved", color: "#64748b" },
-  { value: "Applied", label: "Applied", color: "#3b82f6" },
-  { value: "Interviewing", label: "Interviewing", color: "#8b5cf6" },
-  { value: "Offered", label: "Offered", color: "#10b981" },
-  { value: "Rejected", label: "Rejected", color: "#ef4444" },
-];
+import { BellDotIcon, BellIcon, Trash2 } from "lucide-react";
+import axios from "axios";
 
 export default function JobDashboard() {
-  const [filters, setFilters] = useState({
-    search: "",
-    status: "all",
-    date: null
-  });
-  const [jobsData, setJobsData] = useState(jobs);
+  const { savedJobs } = useSavedJobs();
+  const { userData } = useUserData();
+  const [jobsData, setJobsData] = useState([]);
   const [notes, setNotes] = useState({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedJobs, setSelectedJobs] = useState(new Set());
+  const [userNotificationPreference, setUserNotificationPreference] = useState();
+  const [loading, setLoading] = useState(true);
 
-  // Calculate metrics
-  const statusCounts = jobsData.reduce((acc, job) => {
-    acc[job.status] = (acc[job.status] || 0) + 1;
-    return acc;
-  }, {});
 
-  const skillsAnalysis = jobsData.flatMap(job => job.skills).reduce((acc, skill) => {
-    acc[skill] = (acc[skill] || 0) + 1;
-    return acc;
-  }, {});
+  useEffect(() => {
+    setJobsData(savedJobs);
+  }, [savedJobs]);
 
-  const experienceData = jobsData.reduce((acc, job) => {
-    acc.total += job.experience;
-    acc.count += 1;
-    return acc;
-  }, { total: 0, count: 0 });
-
-  const processMetrics = () => {
-    const filtered = jobsData.filter(job =>
-      (filters.status === "all" || job.status === filters.status) &&
-      (job.company.toLowerCase().includes(filters.search.toLowerCase()) ||
-        job.title.toLowerCase().includes(filters.search.toLowerCase())) &&
-      (!filters.date || job.savedDate === filters.date.toISOString().split('T')[0])
-    );
-
-    return {
-      filteredJobs: filtered,
-      skillsChart: Object.entries(skillsAnalysis)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([skill, count]) => ({ skill, count })),
-      avgExperience: experienceData.count > 0
-        ? (experienceData.total / experienceData.count).toFixed(1)
-        : 0
-    };
-  };
-
-  const { filteredJobs, skillsChart, avgExperience } = processMetrics();
+  useEffect(() => {
+    if (userData?.notifyAboutExpiringJobs !== undefined) {
+      setUserNotificationPreference(userData.notifyAboutExpiringJobs);
+      setLoading(false);
+    }
+  }, [userData, userData?.notifyAboutExpiringJobs]);
 
   const handleStatusChange = (jobId, newStatus) => {
-    setJobsData(prev =>
-      prev.map(job =>
-        job._id === jobId
-          ? {
-              ...job,
-              status: newStatus,
-              statusHistory: [...(job.statusHistory || []), { status: newStatus, date: new Date().toISOString().split('T')[0] }]
-            }
-          : job
+    setJobsData((prev) =>
+      prev.map((job) =>
+        job.jobId === jobId ? { ...job, status: newStatus } : job
       )
     );
   };
-  const resetFilters = () => {
-    setFilters({ search: "", status: "all", date: null });
+
+  const toggleNotifications = async () => {
+    try {
+      const response = await axios.put(
+        `http://localhost:5000/notify/toggle-expiring-jobs`,
+        { email: userData.email },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (response.status === 200 && response.data.success) {
+        console.log("Notification preference updated:", response.data.notifyAboutExpiringJobs);
+        setUserNotificationPreference(response.data.notifyAboutExpiringJobs);
+        toast.success("Notification preference updated successfully!");
+      } else {
+        throw new Error(response.data.message || "Failed to update notification preference");
+      }
+    } catch (error) {
+      console.error("Error updating preference:", error);
+      toast.error("Failed to update notification preference");
+    }
   };
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Status Navbar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-        {statusOptions.map(status => (
-          <Card key={status.value} className="p-4 text-center transition-all hover:scale-[1.02]">
-            <div className="text-2xl font-bold">{statusCounts[status.value] || 0}</div>
-            <div className="text-sm flex items-center justify-center gap-2" style={{ color: status.color }}>
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
-              {status.label}
-            </div>
-          </Card>
-        ))}
-      </div>
 
-      {/* Main Content */}
-      <div className="grid md:grid-cols-3 gap-6">
-        {/* Job List */}
-        <div className="md:col-span-2">
-          <Card className="shadow-lg">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead colSpan={4}>
-                    <div className="flex items-center gap-4 p-2">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search jobs..."
-                          className="pl-10"
-                          value={filters.search}
-                          onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                        />
-                      </div>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="gap-2">
-                            <CalendarDays className="h-4 w-4" />
-                            {filters.date && <X className="h-3 w-3" onClick={() => setFilters(prev => ({ ...prev, date: null }))} />}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={filters.date}
-                            onSelect={(date) => setFilters(prev => ({ ...prev, date }))}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <Button variant="ghost" onClick={resetFilters} className="gap-2">
-                        <X className="h-4 w-4" />
-                        Reset Filters
-                      </Button>
-                    </div>
-                  </TableHead>
-                </TableRow>
-                <TableRow>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredJobs.map(job => (
-                  <TableRow key={job._id} className="group hover:bg-muted/50">
-                    <TableCell className="font-medium">{job.title}</TableCell>
-                    <TableCell>{job.company}</TableCell>
-                    <TableCell>
-                      <Select value={job.status} onValueChange={(value) => handleStatusChange(job._id, value)}>
-                        <SelectTrigger className="w-[120px] group-hover:border-primary">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {statusOptions.map(status => (
-                            <SelectItem key={status.value} value={status.value}>
-                              {status.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="group-hover:text-primary">
-                            <NotebookPen className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                 
+  const handleSelectAll = (checked) => {
+    const ids = filteredJobs.map((job) => job.jobId);
+    setSelectedJobs((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        ids.forEach((id) => next.add(id));
+      } else {
+        ids.forEach((id) => next.delete(id));
+      }
+      return next;
+    });
+  };
 
-                        <DialogContent>
-  <DialogHeader>
-    <DialogTitle>{job.company} - Notes</DialogTitle>
-  </DialogHeader>
+  const handleDelete = async () => {
+    if (!selectedJobs.size || !userData?.email) return;
 
-  <Input
-    value={notes[job._id] ?? job.notes ?? ""} // Ensuring a default empty value
-    onChange={(e) =>
-      setNotes((prev) => ({
-        ...prev,
-        [job._id]: e.target.value, // Correct way to update specific job note
-      }))
-    }
-    placeholder="Enter notes..."
-  />
-
-  <Button
-    onClick={() => {
-      setJobsData((prev) =>
-        prev.map((p) =>
-          p._id === job._id
-            ? { ...p, notes: notes[job._id] ?? "" } // Ensure notes is correctly assigned
-            : p
-        )
+    try {
+      const response = await axios.delete(
+        `${import.meta.env.VITE_APP_API_URL}/data/jobs/delete`,
+        {
+          data: {
+            jobs: Array.from(selectedJobs),
+            email: userData.email,
+          },
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
-    }}
-  >
-    Save Notes
-  </Button>
-</DialogContent>
+      if (response.status !== 200) throw new Error("Failed to delete jobs");
+      setJobsData((prev) => prev.filter((job) => !selectedJobs.has(job.jobId)));
+      setSelectedJobs(new Set());
+      toast.success("Jobs deleted successfully");
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete jobs");
+    }
+  };
 
-                      </Dialog>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
+  const filteredJobs = jobsData.filter((job) => {
+    const matchesSearch =
+      job.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.company?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDate =
+      !dateFilter ||
+      (job.date && new Date(job.date).toDateString() === dateFilter.toDateString());
+    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
+    return matchesSearch && matchesDate && matchesStatus;
+  });
+
+  return (
+    <>
+      <Toaster position="center-top" />
+      <Helmet>
+        <title>Job Application Tracker | Zobly</title>
+        <meta
+          name="description"
+          content="Track your job applications and keep an eye on saved job listings with Zobly's job status tracking feature."
+        />
+        <meta
+          name="keywords"
+          content="job application tracking, saved jobs, job status, career tracker, job search management, Zobly"
+        />
+        <meta name="author" content="Zobly" />
+        <meta property="og:title" content="Job Application Tracker | Zobly" />
+        <meta
+          property="og:description"
+          content="Track your job applications and keep an eye on saved job listings with Zobly's job status tracking feature."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.zobly.com/job-tracking" />
+        <meta
+          property="og:image"
+          content="https://www.zobly.com/assets/job-tracker-banner.png"
+        />
+      </Helmet>
+
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Job Applications</h1>
+          <div className="flex gap-4">
+            <Button onClick={toggleNotifications}>
+
+              {loading ? "Loading..." : userNotificationPreference ? "Turn Notifications Off" : "Turn Notifications On"}
+              <span className="ml-2">
+                {userNotificationPreference ? <BellDotIcon /> : <BellIcon />}
+              </span>
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={!selectedJobs.size}
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Selected
+            </Button>
+          </div>
         </div>
 
-        {/* Analytics Panel */}
-        <div className="space-y-6">
-          {/* Skills Chart */}
-          <Card className="p-6">
-            <div className="mb-4 font-semibold flex items-center gap-2">
-              <Star className="h-4 w-4" /> Top Required Skills
-            </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={skillsChart}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="skill" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar
-                    dataKey="count"
-                    fill="#3b82f6"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
+        <Card className="p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <FilterControls
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            dateFilter={dateFilter}
+            setDateFilter={setDateFilter}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+          />
+        </Card>
 
-          {/* Experience Chart */}
-          <Card className="p-6">
-            <div className="mb-4 font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" /> Experience Analysis
-            </div>
-            <div className="space-y-4">
-              <div className="text-3xl font-bold text-center">{avgExperience} years</div>
-              <div className="text-center text-muted-foreground">Average Required Experience</div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="text-center p-3 bg-muted/10 rounded-lg">
-                  <div className="text-xl font-bold">
-                    {Math.min(...jobsData.map(job => job.experience))}
-                  </div>
-                  <div className="text-sm">Min Experience</div>
-                </div>
-                <div className="text-center p-3 bg-muted/10 rounded-lg">
-                  <div className="text-xl font-bold">
-                    {Math.max(...jobsData.map(job => job.experience))}
-                  </div>
-                  <div className="text-sm">Max Experience</div>
-                </div>
+        <StatusCards
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          savedJobs={savedJobs}
+          jobsData={jobsData}
+        />
+        <Card className="shadow-lg">
+          <div className="relative">
+            <JobTable
+              filteredJobs={filteredJobs}
+              selectedJobs={selectedJobs}
+              handleSelectAll={handleSelectAll}
+              handleStatusChange={handleStatusChange}
+              setSelectedJobs={setSelectedJobs}
+              notes={notes}
+              setNotes={setNotes}
+            />
+            {filteredJobs.length === 0 && (
+              <div className="p-8 text-center text-muted-foreground">
+                <p>No jobs found matching your criteria</p>
               </div>
-            </div>
-          </Card>
-        </div>
+            )}
+          </div>
+        </Card>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
 import {
     Card,
     CardHeader,
@@ -9,160 +9,205 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import {
-    Dialog,
-    DialogTrigger,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from '@/components/ui/dialog';
-import {
-    Carousel,
-    CarouselContent,
-    CarouselItem,
-    CarouselPrevious,
-    CarouselNext,
-} from '@/components/ui/carousel';
 import { ArrowUpRight } from 'lucide-react';
+import { Link } from "react-router-dom";
+import CoverLetterButton from './CoverLetterButton';
+import { SkillsContext } from '../Context/SkillsContext';
+import SkillResources from './Dashboard/SkillResources';
 
-const JobDetails = () => {
-    const [isResumeUploaded, setIsResumeUploaded] = useState(false);
-    const [skillGap] = useState(['HTML', 'CSS']);
-    const [uploadedSkills, setUploadedSkills] = useState([]);
+const calculateMatchPercentage = (jobSkills, userSkills) => {
+    if (!jobSkills || jobSkills.length === 0) return 0;
+    const matchingSkills = jobSkills.filter(skill => userSkills.includes(skill));
+    return Math.round((matchingSkills.length / jobSkills.length) * 100);
+};
 
-    const job = {
-        company: "TechCorp",
-        companyLogo: "https://placehold.co/600x400.png",
-        position: "Software Engineer",
-        location: "San Francisco, CA",
-        jobDescription: `We're seeking a skilled Software Engineer to join our dynamic team...`,
-        requiredSkills: ["JavaScript", "React", "Node.js", "HTML", "CSS", "REST APIs"],
-        salaryRange: "$80,000 - $100,000/year",
-        matchedPercentage: 85,
-    };
+const JobDetails = ({ job }) => {
+    const { globalSkills } = useContext(SkillsContext);
+    const hasGlobalSkills = globalSkills && globalSkills.length > 0;
 
-    const handleResumeUpload = () => {
-        setIsResumeUploaded(true);
-        setUploadedSkills(['HTML', 'CSS', 'JavaScript']);
-    };
+    const matchedPercentage = hasGlobalSkills
+        ? calculateMatchPercentage(job?.tags, globalSkills)
+        : 0;
 
-    const missingSkills = skillGap.filter(skill => !uploadedSkills.includes(skill));
+    const skillGap = hasGlobalSkills && job?.tags
+        ? job.tags.filter(skill => !globalSkills.includes(skill))
+        : [];
+
+    if (!job) {
+        return (
+            <p className="text-muted-foreground p-6" role="status">
+                No job selected
+            </p>
+        );
+    }
 
     return (
-        <div className="max-h-full overflow-scroll hide-scrollbar p-6">
-            <div className="max-w-4xl mx-auto space-y-6">
-                <div className="flex justify-between items-center">
-                    <div className="w-1/2">
-                        <Progress value={job.matchedPercentage} className="h-3" />
-                        <div className="flex justify-between mt-2">
-                            <span className="text-sm text-muted-foreground">Compatibility</span>
-                            <span className="font-semibold">{job.matchedPercentage}%</span>
-                        </div>
-                    </div>
-                    {!isResumeUploaded && (
-                        <Button onClick={handleResumeUpload} className="ml-4">
-                            Upload Resume
-                        </Button>
-                    )}
-                </div>
+        <div className="p-4 md:p-6 overflow-hidden">
+            <article className="max-w-4xl mx-auto space-y-6" aria-labelledby="job-title">
 
-                <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                    <div>
-                        <h1 className="text-3xl font-bold">{job.position}</h1>
-                        <p className="text-lg text-muted-foreground">{job.company}</p>
-                    </div>
-                    <div className="flex gap-3 w-full sm:w-auto">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button className="w-full sm:w-auto">Apply Now <ArrowUpRight /> </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Confirm Application</DialogTitle>
-                                </DialogHeader>
-                                <DialogFooter>
-                                    <Button>Submit Application</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        {isResumeUploaded && (
-                            <Button variant="secondary" className="w-full sm:w-auto">
-                                Generate Cover Letter
-                            </Button>
+                <section aria-labelledby="compatibility-heading">
+                    <div className="flex flex-col md:flex-row gap-4 justify-between items-start">
+                        <div className="w-full md:w-1/2">
+                            <Progress
+                                value={matchedPercentage}
+                                className="h-2"
+                                aria-label="Job compatibility percentage"
+                            />
+                            <div className="flex justify-between mt-2">
+                                <span
+                                    className="text-sm text-muted-foreground"
+                                    id="compatibility-heading"
+                                >
+                                    {hasGlobalSkills ? 'Compatibility' : 'Upload resume to see compatibility'}
+                                </span>
+                                <span className="font-semibold" aria-live="polite">
+                                    {hasGlobalSkills ? `${matchedPercentage}%` : 'NA'}
+                                </span>
+                            </div>
+                        </div>
+                        {!hasGlobalSkills && (
+                            <nav aria-label="Resume upload navigation">
+                                <Link to="/reviewresume" className="w-full md:w-auto">
+                                    <Button className="w-full" role="button">
+                                        Upload Resume to Get Started
+                                    </Button>
+                                </Link>
+                            </nav>
                         )}
                     </div>
-                </div>
+                </section>
 
-                <Card>
-                    <CardContent className="flex items-center gap-4 pt-6">
-                        <Avatar className="h-16 w-16">
-                            <AvatarImage src={job.companyLogo} alt={job.company} />
-                            <AvatarFallback>{job.company[0]}</AvatarFallback>
+                <header className="flex flex-col gap-4 md:flex-row md:justify-between">
+                    <div>
+                        <h1
+                            id="job-title"
+                            className="text-2xl md:text-3xl font-bold"
+                            itemProp="title"
+                        >
+                            {job.title || 'NA'}
+                        </h1>
+                        <p
+                            className="text-lg text-muted-foreground"
+                            itemProp="hiringOrganization"
+                        >
+                            {job.company || 'NA'}
+                        </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <Link
+                            to={job.link}
+                            target="_blank"
+                            className="w-full md:w-auto"
+                            aria-label="Apply for this job"
+                        >
+                            <Button className="w-full" role="button">
+                                Apply Now <ArrowUpRight className="ml-2" />
+                            </Button>
+                        </Link>
+                        {hasGlobalSkills && <CoverLetterButton />}
+                    </div>
+                </header>
+
+                <Card className="hover:shadow-sm transition-shadow" itemScope itemType="https://schema.org/Organization">
+                    <CardContent className="flex items-center gap-4 p-4 md:p-6">
+                        <Avatar className="h-14 w-14 md:h-16 md:w-16" itemProp="image">
+                            <AvatarImage
+                                src={job.logo}
+                                alt={job.company ? `${job.company} logo` : "Company logo"}
+                            />
+                            <AvatarFallback aria-hidden="true">
+                                {job.company?.[0] || '?'}
+                            </AvatarFallback>
                         </Avatar>
                         <div>
-                            <h3 className="text-xl font-semibold">{job.company}</h3>
-                            <div className="flex gap-2 mt-1">
-                                <Badge variant="secondary">{job.location}</Badge>
-                                <Badge variant="secondary">{job.salaryRange}</Badge>
+                            <h2
+                                className="text-xl font-semibold"
+                                itemProp="name"
+                            >
+                                {job.company || 'NA'}
+                            </h2>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                <Badge
+                                    variant="secondary"
+                                    className="gap-1"
+                                    itemProp="jobLocation"
+                                >
+                                    🌍 {job.location || 'Remote'}
+                                </Badge>
+                                <Badge
+                                    variant="secondary"
+                                    className="gap-1"
+                                    itemProp="baseSalary"
+                                >
+                                    💰 {job.salary || 'Competitive'}
+                                </Badge>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <div className="flex flex-col md:flex-row gap-6">
-                    <Card className="flex-1">
-                        <CardHeader>
-                            <CardTitle>Job Description</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground whitespace-pre-line">{job.jobDescription}</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="flex-1">
-                        <CardHeader>
-                            <CardTitle>Required Skills</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                                {job.requiredSkills.map((skill) => (
-                                    <Badge key={skill} variant="secondary">{skill}</Badge>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <section aria-labelledby="job-description-heading">
+                        <Card className="h-full flex-1">
+                            <CardHeader>
+                                <CardTitle id="job-description-heading">
+                                    Job Description
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div
+                                    className="text-muted-foreground whitespace-pre-line"
+                                    itemProp="description"
+                                    role="article"
+                                >
+                                    {job.description || 'No description available'}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </section>
+
+                    <section aria-labelledby="required-skills-heading">
+                        <div className="space-y-6 flex-1">
+                            <Card className="h-fit">
+                                <CardHeader>
+                                    <CardTitle id="required-skills-heading">
+                                        Required Skills
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex flex-wrap gap-2" role="list">
+                                        {job.tags?.map((skill) => (
+                                            <Badge
+                                                key={skill}
+                                                variant={
+                                                    globalSkills?.includes(skill)
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                className={
+                                                    globalSkills?.includes(skill)
+                                                        ? 'bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400'
+                                                        : 'bg-red-100 text-red-800 dark:bg-red-800/30 dark:text-red-400'
+                                                }
+                                                role="listitem"
+                                                aria-label={`${skill} - ${globalSkills?.includes(skill) ? 'matched' : 'missing'}`}
+                                            >
+                                                {skill}
+                                            </Badge>
+                                        )) || 'No skills listed'}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </section>
                 </div>
 
-                {missingSkills.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Skill Development Resources</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Carousel>
-                                <CarouselContent>
-                                    {missingSkills.map((skill, index) => (
-                                        <CarouselItem key={index} className="p-4 md:basis-2/3 lg:basis-2/3">
-                                            <Card>
-                                                <CardContent className="p-4">
-                                                    <h4 className="font-semibold mb-2">Resources for {skill}</h4>
-                                                    <ul className="space-y-2 text-muted-foreground">
-                                                        <li>📖 Article: Mastering {skill}</li>
-                                                        <li>🎥 Video: Introduction to {skill}</li>
-                                                        <li>🛤️ Roadmap: Learning {skill} step by step</li>
-                                                    </ul>
-                                                </CardContent>
-                                            </Card>
-                                        </CarouselItem>
-                                    ))}
-                                </CarouselContent>
-                                <CarouselPrevious />
-                                <CarouselNext />
-                            </Carousel>
-                        </CardContent>
-                    </Card>
+                {hasGlobalSkills && skillGap.length > 0 && (
+                    <section aria-labelledby="skill-resources-heading">
+                        <SkillResources skills={skillGap} />
+                    </section>
                 )}
-            </div>
+            </article>
         </div>
     );
 };

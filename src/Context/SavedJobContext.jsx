@@ -1,37 +1,49 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { debounce } from "lodash";
+import useUserData from "./UserContext";
+import axios from "axios";
 
 const SavedJobsContext = createContext();
 
 export const SavedJobsProvider = ({ children }) => {
+    const { userData } = useUserData();
     const [savedJobs, setSavedJobs] = useState([]);
-
     useEffect(() => {
-        const storedJobs = JSON.parse(localStorage.getItem("savedJobs")) || [];
-        setSavedJobs(storedJobs);
-    }, []);
+        const fetchSavedJobs = async () => {
+            if (!userData?.email) return;
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/data/jobs/saved`, {
+                    params: { email: userData.email }
+                });
+                setSavedJobs(response.data.savedJobs || []);
+            } catch (error) {
+                console.error("Error fetching saved jobs:", error);
+            }
+        };
+        fetchSavedJobs();
+    }, [userData?.email]);
 
     useEffect(() => {
         localStorage.setItem("savedJobs", JSON.stringify(savedJobs));
     }, [savedJobs]);
 
     const saveJobToServer = async (job) => {
+        if (!userData?.email) return;
         try {
-            const response = await fetch("/api/save-job", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(job),
+            await axios.post(`http://z-lb-1738654449.ap-south-1.elb.amazonaws.com/data/jobs/save`, {
+                email: userData.email,
+                jobs: [job],
             });
-            if (!response.ok) throw new Error("Failed to save job");
+            console.log("Job saved successfully:", job);
         } catch (error) {
-            console.error(error);
+            console.error("Error saving job:", error);
         }
     };
 
-    const debouncedSaveJob = useCallback(debounce(saveJobToServer, 500), []);
+    const debouncedSaveJob = useCallback(debounce(saveJobToServer, 500), [userData?.email]);
 
     const saveJob = (job) => {
-        if (!savedJobs.some((saved) => saved._id === job._id)) {
+        if (!savedJobs.some((saved) => saved.jobId === job.jobId)) {
             setSavedJobs((prev) => [...prev, job]);
             debouncedSaveJob(job);
         }

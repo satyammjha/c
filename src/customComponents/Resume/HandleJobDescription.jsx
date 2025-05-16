@@ -13,6 +13,9 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from '../../components/ui/accordion';
+import consumeCredit from '../../services/consumeCredit';
+import useUserData from '../../Context/UserContext';
+import { toast } from "sonner";
 
 const HandleJobDescription = () => {
     const [jdText, setJdText] = useState('');
@@ -21,6 +24,7 @@ const HandleJobDescription = () => {
     const [coverLetters, setCoverLetters] = useState([]);
     const { Jd, setJd } = useContext(JdContext);
     const { globalSkills } = useContext(SkillsContext);
+    const { userData, fetchUserData } = useUserData();
 
     useEffect(() => {
         const storedCoverLetters = localStorage.getItem("coverLetters");
@@ -83,6 +87,10 @@ const HandleJobDescription = () => {
             alert("Please upload a PDF or paste a job description.");
             return;
         }
+        if (userData.aiCredits <= 0) {
+           toast.error("You have no AI credits left. Please wait for your credits to get refilled within 1 hrs.");
+            return;
+        }
 
         setIsLoading(true);
         localStorage.setItem("jobDescription", jdText);
@@ -90,37 +98,50 @@ const HandleJobDescription = () => {
         try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
             const prompt = `
-                Generate exactly 3 professional cover letters within 180 words each aligning to the ${jdText} and ${globalSkills} also check the company name if available in ${jdText} and personalize it accordingly in valid JSON format.
-                The response should be a JSON object with the strictly following structure:
-                {
-                    "cover_letters": ["cover letter 1", "cover letter 2", "cover letter 3"]
-                }
-                Do not include Markdown or extra formatting—return only a valid JSON object.
-            `;
+      Generate exactly 3 professional cover letters within 180 words each aligning to the ${jdText} 
+      and ${globalSkills}, also check the company name if available in ${jdText} and personalize accordingly.
+      Return only a valid JSON object with this structure:
+      {
+        "cover_letters": ["cover letter 1", "cover letter 2", "cover letter 3"]
+      }
+    `;
 
             const result = await model.generateContent(prompt);
-            const response = result.response;
-            let textResponse = response.text();
+            let textResponse = await result.response.text();
 
+            // Clean up any code fencing or control characters
             textResponse = textResponse.replace(/```json|```/g, "").trim();
             textResponse = textResponse.replace(/[\x00-\x1F\x7F]/g, "");
 
             const parsedData = JSON.parse(textResponse);
 
             if (parsedData.cover_letters && Array.isArray(parsedData.cover_letters)) {
+                // 1) Deduct credits on the server
+                await consumeCredit("coverLetter", userData.email);
+
+                // 2) Refresh the userData so UI shows new aiCredits
+                await fetchUserData();
+
+                // 3) Update your cover letters state
                 setCoverLetters(parsedData.cover_letters);
-                localStorage.setItem("coverLetters", JSON.stringify(parsedData.cover_letters));
+                localStorage.setItem(
+                    "coverLetters",
+                    JSON.stringify(parsedData.cover_letters)
+                );
             } else {
                 console.error("Unexpected response format:", textResponse);
                 alert("Unexpected response format. Please try again.");
             }
         } catch (error) {
             console.error("Error generating cover letters:", error);
-            alert("Failed to generate cover letters. Please check the job description and try again.");
+            alert(
+                "Failed to generate cover letters. Please check the job description and try again."
+            );
         } finally {
             setIsLoading(false);
         }
     };
+
 
     const copyToClipboard = (letter) => {
         const fullLetter = `
@@ -150,7 +171,9 @@ Sincerely,
         });
     };
 
-    return (
+    return (<>
+       
+    
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-emerald-600">
@@ -265,6 +288,7 @@ Sincerely,
                 </div>
             </CardContent>
         </Card>
+    </>
     );
 };
 

@@ -83,16 +83,17 @@ export default function WorkflowTimeline() {
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.2 }}
                             className="flex items-center gap-3"
                         >
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center 
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center 
                                 ${step.status === "complete" ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" :
                                 step.status === "current" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" :
                                 "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"}`}
                             >
                                 {step.icon}
                             </div>
-                            <span className={`font-semibold ${step.status === "current" ? "text-blue-600 dark:text-blue-400" : "text-gray-900 dark:text-gray-100"}`}>
+                            <span className={`font-semibold text-lg ${step.status === "current" ? "text-blue-600 dark:text-blue-400" : "text-gray-900 dark:text-gray-100"}`}>
                                 {step.title}
                             </span>
                         </motion.div>
@@ -101,7 +102,8 @@ export default function WorkflowTimeline() {
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="ml-12 pl-4 border-l-2 border-gray-200 dark:border-gray-700"
+                            transition={{ delay: index * 0.2 + 0.1 }}
+                            className="ml-14 pl-4 border-l-2 border-gray-200 dark:border-gray-700"
                         >
                             {step.content}
                             {step.status === "current" && (
