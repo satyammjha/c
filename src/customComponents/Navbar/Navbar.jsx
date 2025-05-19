@@ -9,6 +9,7 @@ import {
   SignInButton,
   useUser,
   UserButton,
+  useAuth
 } from "@clerk/clerk-react";
 import axios from "axios";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +21,7 @@ import { SkillsContext } from "../../Context/SkillsContext";
 import Notifications from "./Notifications";
 
 export default function Navbar() {
+  const { getToken } = useAuth();
   const { globalSkills } = useContext(SkillsContext);
   const [theme, setTheme] = useState(() =>
     localStorage.getItem("theme") || "light"
@@ -66,16 +68,27 @@ export default function Navbar() {
 
     const handleAuthFlow = async () => {
       try {
+        const token = await getToken();
+        console.log("Token:", token); 
         const email = user.primaryEmailAddress?.emailAddress ||
           user.emailAddresses[0]?.emailAddress;
         if (!email || !/^\S+@\S+\.\S+$/.test(email)) return;
 
         await fetchUserData(email);
-        const response = await axios.post("http://localhost:5000/user", {
-          name: user.fullName,
-          email,
-          referredBy: localStorage.getItem("referral"),
-        });
+        const response = await axios.post(
+  "http://localhost:5000/user",
+  {
+    name: user.fullName,
+    email,
+    referredBy: localStorage.getItem("referral"),
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+
 
         localStorage.setItem("user", JSON.stringify(response.data.user));
         localStorage.removeItem("referral");
@@ -100,7 +113,7 @@ export default function Navbar() {
           className="text-primary transition-transform hover:rotate-12"
         />
         <span className="text-xl font-bold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent">
-          JobHuntAI
+          zobly.in
         </span>
       </Link>
 

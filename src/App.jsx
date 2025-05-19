@@ -16,7 +16,6 @@ import { ChatPopup } from './customComponents/Chatbot/chatbot';
 import useUserData from './Context/UserContext';
 import { MatchedJobsContext } from './Context/MatchedJobs';
 import { FeedbackDrawer } from './customComponents/Feedback';
-import { Toaster } from './components/ui/toaster';
 function App() {
   const { email } = useUserData();
   console.log("emm2", email);
@@ -37,7 +36,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/reviewresume" element={<ResumeReview />} />
               <Route path="/tracker" element={<SavedJobs />} />
-              <Route path="/blogs" element={<Blogs />} />
+              <Route path="/blog" element={<Blogs />} />
               <Route path="/refferals" element={<Refferal />} />
               <Route path="/onboard/refer" element={<Onboard />} />
               <Route path="/job-details/:jobId" element={<JobDetails />} />

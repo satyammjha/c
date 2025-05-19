@@ -27,7 +27,7 @@ const Home = () => {
     const location = useLocation();
     const workflowRef = useRef(null);
 
-    
+
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);

@@ -14,18 +14,25 @@ export const JobCard = ({ job, className }) => {
         const jobToSave = {
             jobId: job.jobId || job._id,
             title: job.title,
-            description: job.description || "N/A",
-            company: job.company || "N/A",
-            location: job.location || "N/A",
-            salary: job.salary || "N/A",
-            type: job.type || "N/A",
-            link: job.link || "#",
-            tags: job.tags || [],
-            logo: job.logo || "",
+            company: job.company,
+            location: job.location,
+            salary: job.salary,
+            experience: job.experience,
+            link: job.link,
+            tags: job.tags,
+            logo: job.logo,
+            posted: job.posted,
         };
 
         saveJob(jobToSave);
-        toast.success(`${job.title || 'Job'} saved to your bookmarks`);
+        toast.success(`${job.title} saved to your bookmarks`);
+    };
+
+    // Helper function to format the posted date
+    const formatPostedDate = (posted) => {
+        if (!posted) return "";
+        if (posted === "24h") return "Posted 1 day ago";
+        return `Posted ${posted}`;
     };
 
     return (
@@ -64,14 +71,21 @@ export const JobCard = ({ job, className }) => {
                                 className="text-xl font-semibold text-gray-900 dark:text-gray-100 truncate"
                                 itemProp="title"
                             >
-                                {job.title || "N/A"}
+                                {job.title}
                             </h3>
-                            <p
-                                className="text-sm text-gray-600 dark:text-gray-400 truncate"
-                                itemProp="hiringOrganization"
-                            >
-                                {job.company || "N/A"}
-                            </p>
+                            <div className="flex items-center gap-2">
+                                <p
+                                    className="text-sm text-gray-600 dark:text-gray-400 truncate"
+                                    itemProp="hiringOrganization"
+                                >
+                                    {job.company}
+                                </p>
+                                {job.posted && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        • {formatPostedDate(job.posted)}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <Button
@@ -93,16 +107,18 @@ export const JobCard = ({ job, className }) => {
                 <div className="flex flex-wrap gap-2">
                     <div className="chip bg-blue-100/50 dark:bg-slate-800 text-blue-600 dark:text-blue-300">
                         <MapPin className="w-4 h-4" />
-                        <span itemProp="jobLocation">{job.location || "N/A"}</span>
+                        <span itemProp="jobLocation">{job.location || "Multiple Locations"}</span>
                     </div>
                     <div className="chip bg-purple-100/50 dark:bg-slate-800 text-purple-600 dark:text-purple-300">
                         <Briefcase className="w-4 h-4" />
-                        <span itemProp="employmentType">{job.type || "N/A"}</span>
+                        <span itemProp="experienceRequirements">{job.experience || "Experience not specified"}</span>
                     </div>
-                    <div className="chip bg-green-100/50 dark:bg-slate-800 text-green-600 dark:text-green-300">
-                        <Banknote className="w-4 h-4" />
-                        <span itemProp="baseSalary">{job.salary || "N/A"}</span>
-                    </div>
+                    {job.salary && (
+                        <div className="chip bg-green-100/50 dark:bg-slate-800 text-green-600 dark:text-green-300">
+                            <Banknote className="w-4 h-4" />
+                            <span itemProp="baseSalary">{job.salary}</span>
+                        </div>
+                    )}
                 </div>
 
                 {job.tags?.length > 0 && (

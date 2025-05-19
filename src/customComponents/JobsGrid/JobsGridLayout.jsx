@@ -7,8 +7,7 @@ export const BentoGrid = ({ className, children }) => {
   return (
     <div
       className={cn(
-        "grid w-full grid-cols-1 gap-4 md:grid-cols-12",
-        "auto-rows-[minmax(300px,auto)]",
+        "grid w-full auto-rows-[minmax(250px,auto)] grid-cols-1 gap-3 md:grid-cols-12",
         className
       )}
     >
@@ -17,33 +16,37 @@ export const BentoGrid = ({ className, children }) => {
   );
 };
 
-export const JobsGridLayout = ({ jobs, scrollClassName = "h-[800px]" }) => {
+export const JobsGridLayout = ({ jobs, scrollClassName = "h-[calc(100vh-200px)]" }) => {
   const spanPattern = [
-    'md:col-span-6',
-    'md:col-span-4', 
-    'md:col-span-4',  
-    'md:col-span-3',   
-    'md:col-span-5',  
-    'md:col-span-7',  
+    { col: "md:col-span-6", row: "md:row-span-2" }, // Full width pair
+    { col: "md:col-span-6", row: "md:row-span-2" },
+    { col: "md:col-span-4", row: "md:row-span-1" }, // Three column row
+    { col: "md:col-span-4", row: "md:row-span-1" },
+    { col: "md:col-span-4", row: "md:row-span-1" },
+    { col: "md:col-span-8", row: "md:row-span-2" }, // Wide + narrow row
+    { col: "md:col-span-4", row: "md:row-span-1" },
   ];
 
   return (
-    <ScrollArea className={cn("w-full rounded-lg", scrollClassName)}>
+    <ScrollArea className={cn("w-full rounded-lg border", scrollClassName)}>
       <BentoGrid className="p-4">
         {jobs.map((job, index) => {
           const pattern = spanPattern[index % spanPattern.length];
-          const rowSpan = index % 4 === 0 ? 'md:row-span-2' : '';
-
+          
           return (
             <motion.div
               key={job.jobId || job._id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
+              transition={{ 
+                duration: 0.4, 
+                delay: index * 0.05,
+                ease: [0.25, 0.1, 0.25, 1]
+              }}
               className={cn(
-                "h-full w-full",
-                pattern,
-                rowSpan
+                "overflow-hidden rounded-xl border bg-background shadow-sm transition-all hover:shadow-md",
+                pattern.col,
+                pattern.row
               )}
             >
               <JobCard job={job} />
