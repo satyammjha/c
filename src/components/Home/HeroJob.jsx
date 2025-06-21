@@ -1,9 +1,9 @@
-import React from "react";
-import { InfiniteMovingCards } from "../components/ui/infinite-moving-cards";
-import { useJobData } from "../Context/jobDataProvider";
+import { InfiniteMovingCards } from "../ui/infinite-moving-cards";
+import { useJobData } from "../../Context/jobDataProvider";
 
-export default function InfiniteMovingCardsDemo() {
+export default function HeroJobs() {
   const { jobs, error, isLoading } = useJobData();
+  console.log("Jobs in InfiniteMovingCardsDemo:", jobs);
   return (
     <div className="w-screen overflow-hidden flex items-center justify-center">
       {isLoading ? (
@@ -13,7 +13,7 @@ export default function InfiniteMovingCardsDemo() {
       ) : (
         <div className="h-full w-full">
           <InfiniteMovingCards
-            jobs={jobs.length > 0 ? jobs : items}
+            jobs={jobs}
             direction="left"
             speed="slow"
             pauseOnHover={true}

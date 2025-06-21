@@ -1,11 +1,12 @@
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 import useSWR from 'swr';
 import axios from 'axios';
 
 const fetchJobs = async () => {
-    const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/data/fetchJobsData`);
-    const { naukriJobs = [], gdJobs = [] } = response.data;
-    return [...naukriJobs, ...gdJobs];
+    const response = await axios.get(`https://z.satyamjha.me/jobs`);
+    const jobs = response.data.jobs;
+    console.log("Jobs:", jobs)
+    return jobs;
 };
 
 const JobDataContext = createContext();
@@ -17,7 +18,7 @@ export const JobDataProvider = ({ children }) => {
     });
     return (
         <JobDataContext.Provider value={{
-            jobs: jobs || [], 
+            jobs: jobs || [],
             error,
             isLoading
         }}>

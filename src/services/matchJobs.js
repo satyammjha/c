@@ -25,7 +25,6 @@ export const newMatch = async (skills, jobs) => {
 
     const matchedJobs = jobs
         .map(job => {
-            // Use job.tags if available, otherwise split the title into words
             const rawSkills = job.tags?.length
                 ? job.tags
                 : job.title?.split(/\s|[-,()]+/) || [];

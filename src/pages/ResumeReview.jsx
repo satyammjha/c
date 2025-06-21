@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from "react-helmet-async";
 import { Button } from '../components/ui/button';
 import { SparklesIcon, ScanSearchIcon, RocketIcon } from 'lucide-react';
-import UploadResume from '../customComponents/Resume/UploadResume';
-import HandleJobDescription from '../customComponents/Resume/HandleJobDescription';
+import UploadResume from '../components/Resume/UploadResume';
+import HandleJobDescription from '../components/Resume/HandleJobDescription';
 import { SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 

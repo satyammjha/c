@@ -1,7 +1,7 @@
 import React from "react";
 import axios from "axios";
 import { toast, Toaster } from "sonner";
-import { BackgroundBeams } from "../components/ui/background-beams";
+import { BackgroundBeams } from "../ui/background-beams";
 import { Rocket, Zap, ShieldCheck, Globe, Briefcase, UserCheck, ChartAreaIcon } from "lucide-react";
 
 export default function JobAgentWaitlist() {

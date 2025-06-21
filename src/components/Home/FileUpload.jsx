@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FileUpload } from "../components/ui/file-upload";
+import { FileUpload } from "../ui/file-upload";
 
 export default function FileUploadDemo() {
     const [files, setFiles] = useState([]);

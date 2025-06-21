@@ -5,15 +5,13 @@ import { Rocket } from "lucide-react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import HeroUploadBtn from "../customComponents/Button/HeroButton";
-import { JobsGrid } from "../customComponents/JobsGrid";
-import FileUpload from "../customComponents/FileUpload";
+import FileUpload from "../components/Home/FileUpload";
 import { Helmet } from "react-helmet-async";
-import { useJobData } from "../Context/jobDataProvider";
 
-const InfiniteMovingCardsDemo = lazy(() => import("../customComponents/HeroJob"));
+const HeroJobs = lazy(() => import("../components/Home/HeroJob"));
 const WorkflowTimeline = lazy(() => import("../customComponents/TimelineDemo"));
-const FeaturesSection = lazy(() => import("../customComponents/Features"));
-const Waitlist = lazy(() => import("../customComponents/Waitlist"));
+const FeaturesSection = lazy(() => import("../components/Home/Features"));
+const Waitlist = lazy(() => import("../components/Home/Waitlist"));
 
 const SkeletonLoader = () => (
     <div className="flex flex-col gap-4">
@@ -85,7 +83,7 @@ const Home = () => {
                     </div>
                 </div>
                 <Suspense fallback={<SkeletonLoader />}>
-                    <InfiniteMovingCardsDemo />
+                    <HeroJobs />
                 </Suspense>
             </main>
 
@@ -102,19 +100,6 @@ const Home = () => {
                     </Suspense>
                 </div>
             </section>
-
-            <section className="py-20 bg-white dark:bg-black">
-                <div className="mx-auto px-4">
-                    <motion.h2
-                        {...headingAnimation}
-                        className="text-4xl lg:text-5xl font-bold text-center text-gray-900 dark:text-white mb-12"
-                    >
-                        Curated Employment Opportunities
-                    </motion.h2>
-                    <JobsGrid />
-                </div>
-            </section>
-
             <section
                 ref={workflowRef}
                 className="py-20 bg-gray-50 dark:bg-gray-900"

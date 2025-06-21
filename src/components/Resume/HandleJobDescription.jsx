@@ -1,21 +1,18 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { JdContext } from '../../Context/JdContext';
 import { SkillsContext } from '../../Context/SkillsContext';
-import * as pdfjsLib from 'pdfjs-dist/build/pdf';
-import 'pdfjs-dist/build/pdf.worker.mjs';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
     Accordion,
     AccordionContent,
     AccordionItem,
     AccordionTrigger,
-} from '../../components/ui/accordion';
-import consumeCredit from '../../services/consumeCredit';
+} from '../ui/accordion';
 import useUserData from '../../Context/UserContext';
 import { toast } from "sonner";
+import axios from 'axios';
 
 const HandleJobDescription = () => {
     const [jdText, setJdText] = useState('');
@@ -26,14 +23,15 @@ const HandleJobDescription = () => {
     const { globalSkills } = useContext(SkillsContext);
     const { userData, fetchUserData } = useUserData();
 
+    // Bearer token - move to environment variables in production
+    const bearerToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ODQ3NTc4YTIxNmYzODdlNjc5ODcyY2MiLCJlbWFpbCI6InNhdHlhbUBqaGFqaS5jb20iLCJpYXQiOjE3NTA1NDAyMTcsImV4cCI6MTc1MDYyNjYxN30.fSsCetNk3sqToZu12B7E1nVTwC4mQGaueJrVMRP8qEU";
+
     useEffect(() => {
         const storedCoverLetters = localStorage.getItem("coverLetters");
         if (storedCoverLetters) {
             setCoverLetters(JSON.parse(storedCoverLetters));
         }
     }, []);
-
-    const genAI = new GoogleGenerativeAI("AIzaSyAx4bapGjEdXuwlAgRwpK2jda5Cmklf5rw");
 
     const handleJdUpload = async (e) => {
         const file = e.target.files?.[0];
@@ -43,39 +41,41 @@ const HandleJobDescription = () => {
         setJdFile(file);
 
         try {
-            const extractedText = await extractTextFromPDF(file);
+            // Create FormData for PDF upload
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await axios.post('https://satyamjha.me/health', formData, {
+                headers: {
+                    'Authorization': `Bearer ${bearerToken}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+                timeout: 60000,
+            });
+
+            const extractedText = response.data.text || response.data.extractedText || '';
             setJdText(extractedText);
             setJd(extractedText);
         } catch (error) {
             console.error("Error extracting text from PDF:", error);
-            alert("Failed to extract text from the PDF.");
+
+            if (error.response) {
+                const status = error.response.status;
+                if (status === 401) {
+                    toast.error("Authentication failed. Please check your credentials.");
+                } else if (status === 413) {
+                    toast.error("File too large. Please upload a smaller file.");
+                } else {
+                    toast.error("Failed to extract text from the PDF.");
+                }
+            } else if (error.request) {
+                toast.error("Network error. Please check your connection.");
+            } else {
+                toast.error("Failed to extract text from the PDF.");
+            }
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const extractTextFromPDF = async (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = async () => {
-                try {
-                    const typedArray = new Uint8Array(reader.result);
-                    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
-                    const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-
-                    let fullText = "";
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        fullText += textContent.items.map((item) => item.str).join(" ") + "\n";
-                    }
-                    resolve(fullText);
-                } catch (error) {
-                    reject(error);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
     };
 
     const handleJdTextChange = (e) => {
@@ -84,11 +84,11 @@ const HandleJobDescription = () => {
 
     const handleGenerateCoverLetter = async () => {
         if (!jdText) {
-            alert("Please upload a PDF or paste a job description.");
+            toast.error("Please upload a PDF or paste a job description.");
             return;
         }
         if (userData.aiCredits <= 0) {
-           toast.error("You have no AI credits left. Please wait for your credits to get refilled within 1 hrs.");
+            toast.error("You have no AI credits left. Please wait for your credits to get refilled within 1 hrs.");
             return;
         }
 
@@ -96,52 +96,63 @@ const HandleJobDescription = () => {
         localStorage.setItem("jobDescription", jdText);
 
         try {
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-            const prompt = `
-      Generate exactly 3 professional cover letters within 180 words each aligning to the ${jdText} 
-      and ${globalSkills}, also check the company name if available in ${jdText} and personalize accordingly.
-      Return only a valid JSON object with this structure:
-      {
-        "cover_letters": ["cover letter 1", "cover letter 2", "cover letter 3"]
-      }
-    `;
+            const requestData = {
+                jobDescription: jdText,
+                skills: globalSkills,
+                email: userData.email
+            };
 
-            const result = await model.generateContent(prompt);
-            let textResponse = await result.response.text();
+            const response = await axios.post('https://satyamjha.me/health', requestData, {
+                headers: {
+                    'Authorization': `Bearer ${bearerToken}`,
+                    'Content-Type': 'application/json',
+                },
+                timeout: 60000,
+            });
 
-            // Clean up any code fencing or control characters
-            textResponse = textResponse.replace(/```json|```/g, "").trim();
-            textResponse = textResponse.replace(/[\x00-\x1F\x7F]/g, "");
-
-            const parsedData = JSON.parse(textResponse);
+            const parsedData = response.data;
 
             if (parsedData.cover_letters && Array.isArray(parsedData.cover_letters)) {
-                // 1) Deduct credits on the server
-                await consumeCredit("coverLetter", userData.email);
-
-                // 2) Refresh the userData so UI shows new aiCredits
+                // Refresh the userData so UI shows new aiCredits
                 await fetchUserData();
 
-                // 3) Update your cover letters state
+                // Update cover letters state
                 setCoverLetters(parsedData.cover_letters);
                 localStorage.setItem(
                     "coverLetters",
                     JSON.stringify(parsedData.cover_letters)
                 );
+
+                toast.success("Cover letters generated successfully!");
             } else {
-                console.error("Unexpected response format:", textResponse);
-                alert("Unexpected response format. Please try again.");
+                console.error("Unexpected response format:", response.data);
+                toast.error("Unexpected response format. Please try again.");
             }
         } catch (error) {
             console.error("Error generating cover letters:", error);
-            alert(
-                "Failed to generate cover letters. Please check the job description and try again."
-            );
+
+            if (error.response) {
+                const status = error.response.status;
+                const message = error.response.data?.message || error.response.data?.error || 'Server error';
+
+                if (status === 401) {
+                    toast.error("Authentication failed. Please check your credentials.");
+                } else if (status === 429) {
+                    toast.error("Too many requests. Please try again later.");
+                } else if (status === 400) {
+                    toast.error("Invalid request. Please check your job description.");
+                } else {
+                    toast.error(`Error: ${message}`);
+                }
+            } else if (error.request) {
+                toast.error("Network error. Please check your connection and try again.");
+            } else {
+                toast.error("Failed to generate cover letters. Please try again.");
+            }
         } finally {
             setIsLoading(false);
         }
     };
-
 
     const copyToClipboard = (letter) => {
         const fullLetter = `
@@ -167,13 +178,11 @@ Sincerely,
         `.trim();
 
         navigator.clipboard.writeText(fullLetter).then(() => {
-            alert('Copied to clipboard!');
+            toast.success('Copied to clipboard!');
         });
     };
 
-    return (<>
-       
-    
+    return (
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-emerald-600">
@@ -246,7 +255,6 @@ Sincerely,
                                     </AccordionTrigger>
                                     <AccordionContent className="p-6 bg-white border border-slate-200 rounded-lg shadow-sm mt-2">
                                         <div className="space-y-6">
-
                                             <div className="text-sm text-slate-600">
                                                 <p className="font-semibold">[Your Name]</p>
                                                 <p>[Your Address]</p>
@@ -254,7 +262,6 @@ Sincerely,
                                                 <p>[Email Address]</p>
                                                 <p>[Phone Number]</p>
                                             </div>
-
 
                                             <div className="text-sm text-slate-600">
                                                 <p>{new Date().toLocaleDateString()}</p>
@@ -288,7 +295,6 @@ Sincerely,
                 </div>
             </CardContent>
         </Card>
-    </>
     );
 };
 
