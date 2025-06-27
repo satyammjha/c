@@ -1,29 +1,45 @@
-import { createContext, useContext, useState, useCallback } from "react";
-import axios from "axios";
+import { createContext, useContext, useState, useEffect } from "react";
+
 const UserContext = createContext();
 
 export function UserProvider({ children }) {
     const [userData, setUserData] = useState(null);
-    const fetchUserData = useCallback(async (email) => {
-        try {
-            console.log("Fetching user data for:", email);
-            const response = await axios.post(
-                `${import.meta.env.VITE_APP_API_URL}/data/fetchuserdata`,
-                { email: email }
-            );
-            setUserData(response.data.user);
-            console.log("User data received:", response.data.user);
-        } catch (error) {
-            console.error("Error fetching user data:", error);
-            if (error.response) {
-                console.error("Status:", error.response.status);
-                console.error("Response:", error.response.data);
-            }
+    const [token, setToken] = useState(null);
+
+    useEffect(() => {
+        const savedUser = localStorage.getItem("user");
+        const savedToken = localStorage.getItem("token");
+        if (savedUser && savedToken) {
+            setUserData(JSON.parse(savedUser));
+            setToken(savedToken);
         }
     }, []);
 
+    const setUser = (user, token) => {
+        localStorage.setItem("user", JSON.stringify(user));
+        setUserData(user);
+
+        if (token !== undefined) {
+            localStorage.setItem("token", token);
+            setToken(token);
+            console.log("Token updated:", token);
+        } else {
+            console.log("Token untouched");
+        }
+
+        console.log("User data set in localStorage:", user);
+    };
+
+    const logout = () => {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+
+        setUserData(null);
+        setToken(null);
+    };
+
     return (
-        <UserContext.Provider value={{ userData, fetchUserData }}>
+        <UserContext.Provider value={{ userData, token, setUser, logout }}>
             {children}
         </UserContext.Provider>
     );

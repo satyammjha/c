@@ -8,14 +8,14 @@ import RefferalButton from "../Refferal/RefferalButton";
 import SearchBar from "./Search/SearchBar";
 import clsx from "clsx";
 import Notifications from "./Notifications";
+import { AuthButton } from "../Buttons/LoginButton";
+import useUserData from "../../../Context/UserContext";
 
 export default function Navbar() {
+  const { userData } = useUserData();
   const [theme, setTheme] = useState(() =>
     localStorage.getItem("theme") || "light"
   );
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [aiCredits, setAiCredits] = useState(0);
-
   useEffect(() => {
     const html = document.documentElement;
     const isDark = theme === "dark";
@@ -27,15 +27,6 @@ export default function Navbar() {
     setTheme(prev => prev === "light" ? "dark" : "light"),
     []
   );
-
-  const handleLogin = () => {
-    console.log("Login button clicked");
-    setIsLoggedIn(true);
-  };
-  const handleLogout = () => {
-    console.log("Logout button");
-  };
-
   return (
     <nav className="flex items-center px-4 md:px-8 py-3 bg-background/95 backdrop-blur-sm border-b shadow-sm sticky top-0 z-50">
       <Link to="/" className="flex items-center gap-2 shrink-0 mr-4">
@@ -66,7 +57,7 @@ export default function Navbar() {
           {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
         </Button>
 
-        {isLoggedIn ? (
+        {userData && (
           <>
             <RefferalButton />
 
@@ -77,35 +68,17 @@ export default function Navbar() {
             >
               <Trophy size={16} className="text-primary" />
               <span className="text-sm font-medium">
-                {aiCredits !== undefined ?
-                  `Credits: ${aiCredits}` :
+                {userData?.aiCredits !== undefined ?
+                  `Credits: ${userData?.aiCredits}` :
                   <Skeleton className="h-4 w-20" />}
               </span>
             </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full hover:bg-primary/10"
-              onClick={handleLogout}
-              aria-label="User Menu"
-            >
-              <User size={20} />
-            </Button>
-
             <Notifications />
           </>
-        ) : (
-          <Button
-            variant="default"
-            className="gap-2 px-4 py-2.5 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-primary/30"
-            onClick={handleLogin}
-            aria-label="Login"
-          >
-            <span className="hidden sm:inline">Login</span>
-            <User size={16} />
-          </Button>
         )}
+        <AuthButton />
+
+
       </div>
     </nav>
   );

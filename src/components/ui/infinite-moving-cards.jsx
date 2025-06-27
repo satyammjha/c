@@ -1,18 +1,25 @@
 import { cn } from "../../lib/utils";
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "./button";
-import { ArrowRight, Bookmark } from "lucide-react";
+import { ArrowRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { Toaster } from "./sonner";
 import { toast } from "sonner";
-import { useSavedJobs } from "../../Context/SavedJobContext";
+import useUserData from "../../Context/UserContext";
+import { saveJob } from "../../services/jobService";
 
 export const InfiniteMovingCards = ({ jobs, direction, speed, pauseOnHover, className }) => {
+  const { userData, token, setUser } = useUserData();
+  const isLoggedIn = Boolean(userData && token);
   const containerRef = useRef(null);
   const scrollerRef = useRef(null);
   const [start, setStart] = useState(false);
-  const { savedJobs, saveJob } = useSavedJobs();
 
-  const handleSaveJob = (job) => {
+  const handleSaveJob = async (job) => {
+    if (!isLoggedIn) {
+      toast.error("Please login to save jobs");
+      return;
+    }
+
     const jobToSave = {
       jobId: job.job_id || job._id,
       title: job.job_title,
@@ -27,8 +34,25 @@ export const InfiniteMovingCards = ({ jobs, direction, speed, pauseOnHover, clas
       logo: job.company_logo || "",
     };
 
-    saveJob(jobToSave);
-    toast.success(`Saved ${job.job_title} to bookmarks`);
+    try {
+      const responseInfi = await saveJob(jobToSave, token);
+      console.log("Response from saveJob:", responseInfi);
+
+      setUser(responseInfi.user, token);
+      if (responseInfi.message === "Job already saved") {
+        toast.warn(`Job ${job.job_title} is already saved`);
+        return;
+      }
+      toast.success(`Saved ${job.job_title} to bookmarks`);
+    } catch (error) {
+      toast.error("Failed to save job. Please try again.");
+    }
+  };
+
+  const isJobSaved = (job) => {
+    if (!isLoggedIn) return false;
+    const jobId = job.job_id || job._id;
+    return userData?.savedJobs?.some((saved) => saved.jobId === jobId);
   };
 
   useEffect(() => {
@@ -54,7 +78,7 @@ export const InfiniteMovingCards = ({ jobs, direction, speed, pauseOnHover, clas
       )}
     >
       <div className="z-50">
-        <Toaster position="bottom-left" />
+    
       </div>
       <style>{`
         @keyframes scroll { to { transform: translate(calc(-50% - 0.5rem)); } }
@@ -73,16 +97,16 @@ export const InfiniteMovingCards = ({ jobs, direction, speed, pauseOnHover, clas
           <li
             key={`${job.job_id || job._id}-${idx}`}
             className="w-80 sm:w-72 md:w-80 lg:w-[340px] h-auto min-h-[240px] relative rounded-xl border flex-shrink-0 
-                       border-gray-200/50 dark:border-slate-700/50 p-5 
-                       bg-white/80 dark:bg-slate-900/90 backdrop-blur-sm
-                       shadow-sm hover:shadow-lg dark:shadow-slate-950/20
-                       transition-all duration-300 hover:-translate-y-1 
+                       border-gray-200/60 dark:border-slate-700/60 p-6 
+                       bg-white/90 dark:bg-slate-900/95 backdrop-blur-sm
+                       shadow-md hover:shadow-xl dark:shadow-slate-950/30
+                       transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02]
                        group flex flex-col gap-4"
             role="article"
             aria-label={`Job listing for ${job.job_title} at ${job.company_name}`}
           >
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700">
+              <div className="flex-shrink-0 p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm">
                 <img
                   src={job.company_logo}
                   alt={`${job.company_name} logo`}
@@ -94,42 +118,42 @@ export const InfiniteMovingCards = ({ jobs, direction, speed, pauseOnHover, clas
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base lg:text-lg text-gray-900 dark:text-gray-100 leading-tight line-clamp-2">
+                <h3 className="font-semibold text-base lg:text-lg text-gray-900 dark:text-gray-100 leading-tight line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   {job.job_title}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-1 font-medium">
                   {job.company_name}
                 </p>
                 {job.company_rating && (
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-xs text-amber-600 dark:text-amber-400">⭐</span>
-                    <span className="text-xs text-gray-600 dark:text-gray-400">{job.company_rating}</span>
+                    <span className="text-xs text-amber-500 dark:text-amber-400">⭐</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">{job.company_rating}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2.5 text-sm">
               {job.location && (
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 dark:text-slate-400">📍</span>
-                  <span className="text-gray-700 dark:text-slate-300">{job.location}</span>
+                  <span className="text-gray-700 dark:text-slate-300 font-medium">{job.location}</span>
                 </div>
               )}
               {job.experience && (
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 dark:text-slate-400">💼</span>
-                  <span className="text-gray-700 dark:text-slate-300">{job.experience}</span>
+                  <span className="text-gray-700 dark:text-slate-300 font-medium">{job.experience}</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
                 <span className="text-gray-500 dark:text-slate-400">💰</span>
-                <span className="text-gray-700 dark:text-slate-300">{job.salary}</span>
+                <span className="text-gray-700 dark:text-slate-300 font-medium">{job.salary}</span>
               </div>
               {job.footer_label && (
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 dark:text-slate-400">⏳</span>
-                  <span className="text-gray-700 dark:text-slate-300">{job.footer_label}</span>
+                  <span className="text-gray-700 dark:text-slate-300 font-medium">{job.footer_label}</span>
                 </div>
               )}
             </div>
@@ -139,26 +163,26 @@ export const InfiniteMovingCards = ({ jobs, direction, speed, pauseOnHover, clas
                 {job.skills.slice(0, 3).map(skill => (
                   <span
                     key={skill}
-                    className="px-2 py-1 text-xs bg-blue-50/80 dark:bg-slate-800/60 text-blue-700 dark:text-blue-300 
-                               rounded-md border border-blue-100 dark:border-slate-700"
+                    className="px-2.5 py-1 text-xs bg-blue-50/90 dark:bg-slate-800/80 text-blue-700 dark:text-blue-300 
+                               rounded-lg border border-blue-100 dark:border-slate-700 font-medium"
                   >
                     {skill}
                   </span>
                 ))}
                 {job.skills.length > 3 && (
-                  <span className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
+                  <span className="px-2.5 py-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
                     +{job.skills.length - 3} more
                   </span>
                 )}
               </div>
             )}
 
-            <div className="flex items-center justify-between mt-auto pt-2 gap-3">
+            <div className="flex items-center justify-between mt-auto pt-3 gap-3">
               <Button
                 className="flex-1 bg-gray-900 hover:bg-black dark:bg-slate-800 dark:hover:bg-slate-700 
                            text-white transition-all duration-200 flex items-center gap-2 justify-center 
-                           py-2 px-4 text-sm rounded-lg shadow-sm hover:shadow-md
-                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500"
+                           py-2.5 px-4 text-sm rounded-lg shadow-md hover:shadow-lg
+                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 font-medium"
                 onClick={() => window.open(job.job_url, "_blank")}
                 aria-label="Apply now"
               >
@@ -166,20 +190,31 @@ export const InfiniteMovingCards = ({ jobs, direction, speed, pauseOnHover, clas
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </Button>
 
-              <Button
-                className="flex items-center justify-center p-2 bg-white dark:bg-slate-900 
-                           border border-gray-300 dark:border-slate-600 rounded-lg shadow-sm hover:shadow-md 
-                           hover:bg-gray-50 dark:hover:bg-slate-800 transition-all duration-200"
-                aria-label="Save job"
-                onClick={() => handleSaveJob(job)}
-              >
-                <Bookmark
-                  className={`w-5 h-5 transition-colors duration-200 ${savedJobs.some((saved) => saved.jobId === (job.job_id || job._id))
-                    ? "text-blue-600 dark:text-blue-400 fill-current"
-                    : "text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
-                    }`}
-                />
-              </Button>
+              {isJobSaved(job) ? (
+                <div
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-semibold 
+                             bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 
+                             dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-300 
+                             border border-green-200 dark:border-green-700/50 shadow-sm"
+                  aria-label="Already saved"
+                >
+                  <BookmarkCheck className="w-4 h-4" />
+                  Saved
+                </div>
+              ) : (
+                <Button
+                  className="flex items-center justify-center p-2.5 bg-white dark:bg-slate-900 
+                             border border-gray-300 dark:border-slate-600 rounded-lg shadow-md hover:shadow-lg 
+                             hover:bg-gray-50 dark:hover:bg-slate-800 transition-all duration-200
+                             hover:border-blue-300 dark:hover:border-blue-600"
+                  aria-label="Save job"
+                  onClick={() => handleSaveJob(job)}
+                >
+                  <Bookmark
+                    className="w-5 h-5 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  />
+                </Button>
+              )}
             </div>
           </li>
         ))}

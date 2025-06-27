@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 import { Github, Twitter, Linkedin } from "lucide-react";
 import axios from "axios";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 
 export function Footer() {
   const handleNewsletter = async (e) => {
@@ -33,7 +33,7 @@ export function Footer() {
 
   return (
     <footer className="w-full border-t bg-background dark:bg-[#0B0B0F] z-50">
-      <Toaster position="bottom-right" />
+
       <div className="container px-4 py-12 sm:py-16">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3 lg:grid-cols-4">
 

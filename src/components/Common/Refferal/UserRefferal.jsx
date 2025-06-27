@@ -1,8 +1,8 @@
 import React from 'react'
 import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "../../components/ui/card";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../../components/ui/table";
-import { Badge } from "../../components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "../../ui/card";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../../ui/table";
+import { Badge } from "../../ui/badge";
 import { AlertCircleIcon } from "lucide-react";
 
 

@@ -4,12 +4,12 @@ import { Button } from "../components/ui/button";
 import { Rocket } from "lucide-react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
-import HeroUploadBtn from "../customComponents/Button/HeroButton";
+import HeroUploadBtn from "../components/Common/Buttons/HeroButton";
 import FileUpload from "../components/Home/FileUpload";
 import { Helmet } from "react-helmet-async";
 
 const HeroJobs = lazy(() => import("../components/Home/HeroJob"));
-const WorkflowTimeline = lazy(() => import("../customComponents/TimelineDemo"));
+const WorkflowTimeline = lazy(() => import("../components/Home/TimelineDemo"));
 const FeaturesSection = lazy(() => import("../components/Home/Features"));
 const Waitlist = lazy(() => import("../components/Home/Waitlist"));
 

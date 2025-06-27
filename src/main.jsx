@@ -10,6 +10,7 @@ import { UserProvider } from './Context/UserContext.jsx';
 import { JobDataProvider } from './Context/jobDataProvider.jsx';
 import { HelmetProvider } from 'react-helmet-async';
 import MatchedJobsContextProvider from './Context/MatchedJobs.jsx';
+
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 if (!PUBLISHABLE_KEY) {
     throw new Error("Missing Publishable Key");

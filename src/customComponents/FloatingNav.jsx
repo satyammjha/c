@@ -3,7 +3,7 @@ import { FloatingDock } from "../components/ui/floating-dock";
 import { Home, LayoutDashboard, FileText, ListChecks, Users } from "lucide-react";
 export function FloatingDockDemo() {
     const links = [
-        
+
         {
             title: "Dashboard",
             icon: <LayoutDashboard className="h-full w-full text-neutral-500 dark:text-neutral-300" />,

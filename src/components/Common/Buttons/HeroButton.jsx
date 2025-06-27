@@ -1,17 +1,20 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../../components/ui/button';
+import { Button } from '../../ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-} from "../../components/ui/dialog";
+} from "../../ui/dialog";
 import { MoveUpRight, MoveUpRightIcon } from 'lucide-react';
-import { SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
+import useUserData from '../../../Context/UserContext';
 
 const HeroUploadBtn = () => {
+    const { userData, token } = useUserData();
+    const signedIn = userData?.email && token;
+
     const navigate = useNavigate();
     const features = [
         "AI-powered analysis of your resume content",
@@ -23,7 +26,7 @@ const HeroUploadBtn = () => {
 
     return (
         <>
-            <SignedIn>
+            {signedIn &&
                 <Button
                     className="flex items-center gap-2"
                     onClick={() => navigate('/reviewresume')}
@@ -31,10 +34,10 @@ const HeroUploadBtn = () => {
                 >
                     <span itemProp="name">Analyze My Resume</span>
                     <MoveUpRightIcon aria-hidden="true" className="h-5 w-5" />
-                </Button>
-            </SignedIn>
+                </Button>}
 
-            <SignedOut>
+
+            {!signedIn &&
                 <Dialog>
                     <DialogTrigger asChild>
                         <Button
@@ -72,19 +75,17 @@ const HeroUploadBtn = () => {
                             </div>
                         </section>
 
-                        <SignInButton mode="modal" afterSignInUrl="/reviewresume">
-                            <Button
-                                variant="default"
-                                size="lg"
-                                className="w-full mt-4 py-6 text-lg"
-                                aria-label="Sign in to start AI-powered job search"
-                            >
-                                🚀 Start Free Analysis Now
-                            </Button>
-                        </SignInButton>
+                        <Button
+                            variant="default"
+                            size="lg"
+                            className="w-full mt-4 py-6 text-lg"
+                            aria-label="Sign in to start AI-powered job search"
+                        >
+                            🚀 Start Free Analysis Now
+                        </Button>
+
                     </DialogContent>
-                </Dialog>
-            </SignedOut>
+                </Dialog>}
         </>
     );
 };

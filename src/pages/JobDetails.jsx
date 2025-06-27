@@ -63,7 +63,7 @@ const JobDetails = () => {
 
     return (
         <>
-            <Toaster position={"top-center"} />
+        
             <div className="container mx-auto p-4 md:p-8">
                 <div className="grid md:grid-cols-3 gap-8">
                     <div className="md:col-span-2 space-y-6">

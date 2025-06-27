@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
-import RefferalMessage from "../customComponents/Refferal/RefferalMessage";
-import UserRefferal from "../customComponents/Refferal/UserRefferal";
+import RefferalMessage from "../components/Common/Refferal/RefferalMessage";
+import UserRefferal from "../components/Common/Refferal/UserRefferal";
 import ReferralLeaderBoard from "../customComponents/Leaderboard";
 
 export default function ReferralTracker() {

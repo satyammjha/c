@@ -14,7 +14,7 @@ export function JobsGrid() {
       .sort(() => Math.random() - 0.5)
       .slice(0, 27);
   }, [jobs]);
-console.log("randomJobs", randomJobs);
+  console.log("randomJobs", randomJobs);
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-slate-950 min-h-screen">
       <div className="max-w-[80vw] mx-auto">
@@ -23,7 +23,7 @@ console.log("randomJobs", randomJobs);
             <JobGridSkeleton />
           ) : (
             <ScrollArea className="h-[calc(100vh-160px)] rounded-lg border">
-              <JobsGridLayout 
+              <JobsGridLayout
                 jobs={randomJobs}
                 scrollClassName="h-[calc(100vh-160px)]"
               />

@@ -45,10 +45,10 @@ export const JobTableRow = ({ job, selected, onSelect, onStatusChange }) => {
       <TableCell>
         {job.date
           ? new Date(job.date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })
           : "N/A"}
       </TableCell>
       <TableCell>

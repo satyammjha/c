@@ -1,4 +1,4 @@
-import { Card } from "../../components/ui/card";
+import { Card } from "../ui/card";
 import { statusOptions } from "../../services/formatSalary";
 
 export const StatusCards = ({ setStatusFilter, savedJobs, jobsData }) => (

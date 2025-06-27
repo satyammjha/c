@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
-import { Button } from '../../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card'
+import { Button } from '../../ui/button'
 import {
     Dialog,
     DialogContent,
@@ -9,9 +9,9 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-} from "../../components/ui/dialog"
+} from "../../ui/dialog"
 import { MessageCircle, Share2, Linkedin, Twitter, ClipboardCheck, Rocket, Sparkles } from 'lucide-react'
-import useUserData from '../../Context/UserContext'
+import useUserData from '../../../Context/UserContext'
 import { SignInButton } from '@clerk/clerk-react'
 
 const RefferalMessage = () => {

@@ -8,20 +8,20 @@ const SavedJobsContext = createContext();
 export const SavedJobsProvider = ({ children }) => {
     const { userData } = useUserData();
     const [savedJobs, setSavedJobs] = useState([]);
-    useEffect(() => {
-        const fetchSavedJobs = async () => {
-            if (!userData?.email) return;
-            try {
-                const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/data/jobs/saved`, {
-                    params: { email: userData.email }
-                });
-                setSavedJobs(response.data.savedJobs || []);
-            } catch (error) {
-                console.error("Error fetching saved jobs:", error);
-            }
-        };
-        fetchSavedJobs();
-    }, [userData?.email]);
+    // useEffect(() => {
+    //     const fetchSavedJobs = async () => {
+    //         if (!userData?.email) return;
+    //         try {
+    //             const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/data/jobs/saved`, {
+    //                 params: { email: userData.email }
+    //             });
+    //             setSavedJobs(response.data.savedJobs || []);
+    //         } catch (error) {
+    //             console.error("Error fetching saved jobs:", error);
+    //         }
+    //     };
+    //     fetchSavedJobs();
+    // }, [userData?.email]);
 
     useEffect(() => {
         localStorage.setItem("savedJobs", JSON.stringify(savedJobs));
