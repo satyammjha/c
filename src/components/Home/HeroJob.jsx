@@ -9,7 +9,9 @@ export default function HeroJobs() {
       {isLoading ? (
         <p className="text-lg text-gray-600">Loading jobs...</p>
       ) : error ? (
-        <p className="text-lg text-red-500">Error loading jobs. Please try again later.</p>
+        <p className="text-lg text-red-500">
+          Error loading jobs. Please try again later.
+        </p>
       ) : (
         <div className="h-full w-full">
           <InfiniteMovingCards

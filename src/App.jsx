@@ -1,23 +1,26 @@
-import { Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import Dashboard from './pages/Dashboard';
-import Navbar from './components/Common/Navbar/Navbar';
-import ErrorPage from './pages/ErrorPage';
-import { Footer } from './customComponents/Footer';
-import ResumeReview from './pages/ResumeReview';
-import Blogs from './pages/Blogs';
-import Refferal from './pages/Refferal';
-import Onboard from './pages/Onboard';
-import JobDetails from './pages/JobDetails';
-import { FloatingDockDemo } from './customComponents/FloatingNav';
-import { SavedJobsProvider } from './Context/SavedJobContext';
-import SavedJobs from './pages/Track';
-import ChatPopup from './components/Common/Chatbot/chatbot';
-import { FeedbackDrawer } from './customComponents/Feedback';
-import { Toaster } from 'sonner';
+import { Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
+import Navbar from "./components/Common/Navbar/Navbar";
+import ErrorPage from "./pages/ErrorPage";
+import { Footer } from "./customComponents/Footer";
+import ResumeReview from "./pages/ResumeReview";
+import Blogs from "./pages/Blogs";
+import Refferal from "./pages/Refferal";
+import Onboard from "./pages/Onboard";
+import JobDetails from "./pages/JobDetails";
+import { FloatingDockDemo } from "./customComponents/FloatingNav";
+import { SavedJobsProvider } from "./Context/SavedJobContext";
+import SavedJobs from "./pages/Track";
+import ChatPopup from "./components/Common/Chatbot/chatbot";
+import { FeedbackDrawer } from "./customComponents/Feedback";
+import MockPanel from "./pages/MockPanel";
+import { Toaster } from "sonner";
+
 function App() {
   return (
     <SavedJobsProvider>
+      <ChatPopup />
       <Toaster position="top-center" />
       <div className="dark:bg-black hide-scrollbar">
         <div className="fixed top-0 left-0 w-full z-50">
@@ -25,7 +28,7 @@ function App() {
           <FeedbackDrawer />
           <FloatingDockDemo />
         </div>
-        <ChatPopup />
+
         <div className="pt-16">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -37,6 +40,7 @@ function App() {
             <Route path="/refferals" element={<Refferal />} />
             <Route path="/onboard/refer" element={<Onboard />} />
             <Route path="/job-details/:jobId" element={<JobDetails />} />
+            <Route path="/mock" element={<MockPanel />} />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </div>
@@ -46,7 +50,7 @@ function App() {
         </div>
       </div>
     </SavedJobsProvider>
-  )
+  );
 }
 
 export default App;
